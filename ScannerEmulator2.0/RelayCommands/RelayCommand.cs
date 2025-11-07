@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace ScannerEmulator2._0.RelayCommand
+namespace ScannerEmulator2._0.RelayCommands
 {
     public class RelayCommand : ICommand
     {

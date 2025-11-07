@@ -1,12 +1,27 @@
 ﻿<Window x:Class="ScannerEmulator2._0.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ScannerEmulator2._0"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        xmlns:views="clr-namespace:ScannerEmulator2._0.Windows"
+        Title="Scanner Emulator Suite"
+        Height="750" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="#FFF9FAFB">
 
+    <Grid Margin="10">
+        <TabControl FontSize="14" BorderBrush="#CCC" BorderThickness="1">
+            <TabItem Header="🏠 Главная">
+                <views:TaskCreating/>
+            </TabItem>
+
+            <TabItem Header="📸 Эмулятор камер">
+                <views:TaskCreating/>
+            </TabItem>
+
+            <TabItem Header="⚙️ Настройки">
+                <TextBlock Text="Тут можно добавить настройки приложения" 
+                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                           FontStyle="Italic" Foreground="Gray"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

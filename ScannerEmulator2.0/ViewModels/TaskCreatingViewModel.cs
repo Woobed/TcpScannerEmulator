@@ -25,7 +25,7 @@ namespace ScannerEmulator2._0.ViewModels
         {
             _cameraService = service;
             _factory = factory;
-            AddCameraCommand = new RelayCommand(_ => AddCamera());
+            AddCameraCommand = new RelayCommand(AddCamera);
         }
 
         private void AddCamera()
