@@ -1,0 +1,36 @@
+## Игнорировать файлы сборки и бинарные файлы
+[Bb]in/
+[Oo]bj/
+*.exe
+*.dll
+*.pdb
+*.cache
+
+## Файлы Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Файлы Rider
+.idea/
+*.csproj.DotSettings.user
+
+## Файлы пакетов NuGet
+packages/
+*.nupkg
+.nuget/
+NuGet.exe
+
+## Файлы резервных копий
+*.backup
+*.bak
+
+## Файлы логов
+*.log
+logs/
+
+## Файлы операционной системы
+Thumbs.db
+.DS_Store
