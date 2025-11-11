@@ -13,9 +13,9 @@ namespace ScannerEmulator2._0.Factories
             camerasHanlderService = service;
         }
 
-        public void Create(string ip, int port)
+        public string Create(string ip, int port)
         {
-            camerasHanlderService.AddEmulator(new TcpCameraEmulator(ip,port));
+            return camerasHanlderService.AddEmulator(new TcpCameraEmulator(ip,port));
         }
     }
 }

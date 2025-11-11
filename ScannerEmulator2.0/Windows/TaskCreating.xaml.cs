@@ -1,6 +1,8 @@
-﻿using ScannerEmulator2._0.Factories;
+﻿using ScannerEmulator2._0.Abstractions;
+using ScannerEmulator2._0.Factories;
 using ScannerEmulator2._0.Services;
 using ScannerEmulator2._0.TCPScanner;
+using ScannerEmulator2._0.ViewModels;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,6 +17,7 @@ namespace ScannerEmulator2._0.Windows
     {
         private readonly CamerasHanlderService _service;
         private readonly EmulatorFactory _factory;
+        private ListEmulatorViewModel _viewModel;
 
         private string? _selectedFilePath;
 
@@ -23,6 +26,7 @@ namespace ScannerEmulator2._0.Windows
             InitializeComponent();
             _service = new CamerasHanlderService();
             _factory = new EmulatorFactory(_service);
+            _viewModel = new(_service, _factory);
             LoadFiles();
             RefreshCamerasList();
         }
@@ -75,9 +79,7 @@ namespace ScannerEmulator2._0.Windows
 
             string ip = IpTextBox.Text.Trim();
 
-            _factory.Create(ip, port);
-            var camera = (TcpCameraEmulator)_service.GetEmulator($"{ip}_{port}");
-            await camera.StartAsync();
+            _viewModel.CreateEmulator(ip, port);
 
             RefreshCamerasList();
         }
@@ -86,9 +88,7 @@ namespace ScannerEmulator2._0.Windows
         private void RefreshCamerasList()
         {
             CamerasListBox.ItemsSource = null;
-            var cameras = typeof(CamerasHanlderService)
-                .GetField("tcpCameras", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.GetValue(_service) as List<TcpCameraEmulator>;
+            var cameras = _service.GetEmulatorList();
 
             CamerasListBox.ItemsSource = cameras;
         }
@@ -104,9 +104,7 @@ namespace ScannerEmulator2._0.Windows
 
             var button = (FrameworkElement)sender;
             string name = button.Tag.ToString()!;
-            var camera = (TcpCameraEmulator)_service.GetEmulator(name);
-
-            camera.SetFile(_selectedFilePath);
+            _viewModel.AssignFile(name, _selectedFilePath);
             MessageBox.Show($"Файл назначен камере {name}");
         }
 
@@ -117,8 +115,14 @@ namespace ScannerEmulator2._0.Windows
             string name = button.Tag.ToString()!;
             var camera = (TcpCameraEmulator)_service.GetEmulator(name);
 
-            camera.StartStreaming(500);
-            MessageBox.Show($"Трансляция камеры {name} запущена");
+            if (_viewModel.StartStreaming(name, 500).Result)
+            {
+                MessageBox.Show($"Трансляция камеры {name} запущена");
+            }
+            else
+            {
+                MessageBox.Show($"Файл для отправки не был назначен");
+            }
         }
 
         // === Удаление камеры ===

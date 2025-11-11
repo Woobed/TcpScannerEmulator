@@ -6,22 +6,22 @@ using System.Text;
 
 namespace ScannerEmulator2._0.TCPScanner
 {
-    public class TcpCameraEmulator: ITcpCameraEmulator
+    public class TcpCameraEmulator : ITcpCameraEmulator
     {
-        private readonly IPAddress _ipAddress;
-        private readonly int _port;
+        public int Port { get; set; }
+        public string Ip { get; set; }
         private readonly CancellationTokenSource _cts = new();
         private TcpListener? _listener;
         private bool _isStreaming;
-        private string? _filePath;
+        private string _filePath = String.Empty;
         public string Name { get; set; }
         public bool IsRunning { get; private set; }
 
         public TcpCameraEmulator(string ip, int port)
         {
-            Name = $"{ip}_{port}";
-            _ipAddress = IPAddress.Parse(ip);
-            _port = port;
+            Name = $"{ip}:{port}";
+            Ip = ip;
+            Port = port;
         }
 
         public void SetFile(string path)
@@ -38,11 +38,10 @@ namespace ScannerEmulator2._0.TCPScanner
         {
             if (IsRunning) return;
             IsRunning = true;
-
-            _listener = new TcpListener(_ipAddress, _port);
+            _listener = new TcpListener(IPAddress.Parse(Ip), Port);
             _listener.Start();
 
-            Console.WriteLine($"{Name} запущена на {_ipAddress}:{_port}");
+            Console.WriteLine($"{Name} запущена на {Ip}:{Port}");
 
             _ = AcceptClientsAsync(_cts.Token);
         }
@@ -107,16 +106,17 @@ namespace ScannerEmulator2._0.TCPScanner
         }
 
         // Начало отправки
-        public void StartStreaming(int delay)
+        public bool StartStreaming(int delay)
         {
             if (string.IsNullOrEmpty(_filePath))
             {
                 Console.WriteLine($"{Name}: нет назначенного файла!");
-                return;
+                return false;
             }
 
             _isStreaming = true;
             Console.WriteLine($"{Name}: трансляция запущена ({delay} мс)");
+            return true;
         }
 
         // Пауза
