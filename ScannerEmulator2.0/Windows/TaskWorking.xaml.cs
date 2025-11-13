@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using ScannerEmulator2._0.Services;
 using ScannerEmulator2._0.TCPScanner;
+using ScannerEmulator2._0.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -12,7 +13,6 @@ namespace ScannerEmulator2._0.Windows
     public partial class TaskWorking : UserControl
     {
         private readonly CamerasHanlderService _service;
-
         public TaskWorking()
         {
             InitializeComponent();
@@ -25,15 +25,26 @@ namespace ScannerEmulator2._0.Windows
             var cameras = _service.GetEmulatorList(t => t.IsReady);
             ActiveCamerasPanel.ItemsSource = cameras;
         }
-
         private void Start_Click(object sender, RoutedEventArgs e)
         {
-            string name = ((FrameworkElement)sender).Tag.ToString();
-            var camera = _service.GetEmulator(name);
-            if (camera is TcpCameraEmulator cam)
+            var button = sender as Button;
+            string name = button?.Tag as string;
+
+            // Находим ViewModel камеры
+            var cameraViewModel = ActiveCamerasPanel.ItemsSource?
+                .OfType<EmulatorViewModel>()
+                .FirstOrDefault(vm => vm.Name == name);
+
+            if (cameraViewModel != null)
             {
-                cam.StartStreaming(500);
-                MessageBox.Show($"Камера {name} начала передачу данных");
+                var camera = _service.GetEmulator(name);
+                if (camera is TcpCameraEmulator cam)
+                {
+                    // Получаем настройки из ViewModel
+                    var settings = cameraViewModel.GetTaskSettings();
+
+                    cam.StartStreaming(settings);
+                }
             }
         }
 

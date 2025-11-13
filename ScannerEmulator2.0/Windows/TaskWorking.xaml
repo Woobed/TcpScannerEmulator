@@ -27,12 +27,43 @@
                                 <Border BorderBrush="#DDD" BorderThickness="1" Background="WhiteSmoke"
                                         CornerRadius="8" Padding="12" Margin="6">
                                     <StackPanel Orientation="Vertical">
-                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14"/>
-                                        <TextBlock Text="{Binding FileName}" 
-                                                    FontSize="12"
-                                                    Foreground="Gray"
-                                                    TextTrimming="CharacterEllipsis"
-                                                    Margin="0,4,0,0"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <StackPanel Orientation="Vertical">
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14"/>
+                                                <TextBlock Text="{Binding FileName}" 
+                                                            FontSize="12"
+                                                            Foreground="Gray"
+                                                            TextTrimming="CharacterEllipsis"
+                                                            Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Vertical" Margin="40,0,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Grid.Row="0" Text="Header" Width="70" TextAlignment="Center" FontSize="14"  Margin="8,0,0,3"/>
+                                                    <TextBlock Grid.Row="0" Text="Terminator" Width="70" TextAlignment="Center" FontSize="14"  Margin="8,0,0,3"/>
+                                                    <TextBlock Grid.Row="0" Text="Separator" Width="70" TextAlignment="Center" FontSize="14" Margin="7,0,0,3"/>
+                                                    <TextBlock Grid.Row="0" Text="Delay" Width="70" TextAlignment="Center" FontSize="14" Margin="6.5,0,0,3"/>
+                                                    <TextBlock Grid.Row="0" Text="GroupCount" Width="70" TextAlignment="Center" FontSize="14" Margin="6.5,0,0,3"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    
+                                                    <TextBox Text="{Binding DataHeader, UpdateSourceTrigger=PropertyChanged}" 
+                                                            Height="25" Width="70" Margin="8,0,0,8" FontSize="14" 
+                                                            ToolTip="Заголовок данных"/>
+                                                    <TextBox Text="{Binding DataTerminator, UpdateSourceTrigger=PropertyChanged}" 
+                                                            Height="25" Width="70" Margin="8,0,0,8" FontSize="14" 
+                                                            ToolTip="Терминатор данных"/>
+                                                    <TextBox Text="{Binding DataSeparator, UpdateSourceTrigger=PropertyChanged}" 
+                                                            Height="25" Width="70" Margin="8,0,0,8" FontSize="14" 
+                                                            ToolTip="Разделитель данных"/>
+                                                    <TextBox Text="{Binding Delay, UpdateSourceTrigger=PropertyChanged}" 
+                                                            Height="25" Width="70" Margin="8,0,0,8" FontSize="14" 
+                                                            ToolTip="Задержка в миллисекундах"/>
+                                                    <TextBox Text="{Binding GroupCount, UpdateSourceTrigger=PropertyChanged}" 
+                                                            Height="25" Width="70" Margin="8,0,0,8" FontSize="14" 
+                                                            ToolTip="Количество в группе"/>
+                                                </StackPanel>
+                                             </StackPanel>
+                                        </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Content="▶ Начать"
                                                     Tag="{Binding Name}"

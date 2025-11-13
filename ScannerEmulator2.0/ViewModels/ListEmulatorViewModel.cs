@@ -37,11 +37,5 @@ namespace ScannerEmulator2._0.ViewModels
             var camera = _service.GetEmulator(name);
             camera.SetFile(path);
         }
-
-        public async Task<bool> StartStreaming(string name,int delay)
-        {
-            var camera = _service.GetEmulator(name);
-            return camera.StartStreaming(delay);
-        }
     }
 }

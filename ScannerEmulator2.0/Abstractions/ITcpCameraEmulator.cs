@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using ScannerEmulator2._0.Dto;
+using System.Net.Sockets;
 
 namespace ScannerEmulator2._0.Abstractions
 {
@@ -7,8 +8,8 @@ namespace ScannerEmulator2._0.Abstractions
         string Name { get; set; }
         void SetFile(string path);
         Task StartAsync();
-        Task HandleClientAsync(int delay);
-        bool StartStreaming(int delay);
+        Task HandleClientAsync(TaskSettings settings);
+        bool StartStreaming(TaskSettings settings);
 
         void PauseStreaming();
 

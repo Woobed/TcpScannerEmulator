@@ -1,4 +1,5 @@
 ﻿using ScannerEmulator2._0.Abstractions;
+using ScannerEmulator2._0.Dto;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -68,7 +69,7 @@ namespace ScannerEmulator2._0.TCPScanner
         }
 
         // Обработка клиента 
-        public async Task HandleClientAsync(int delay)
+        public async Task HandleClientAsync(TaskSettings settings)
         {
             if (client == null) return;
             using var stream = client.GetStream();
@@ -88,17 +89,51 @@ namespace ScannerEmulator2._0.TCPScanner
                     using var reader = new StreamReader(fileStream, Encoding.UTF8);
 
                     string? line;
-                    while ((line = await reader.ReadLineAsync()) != null && !_cts.Token.IsCancellationRequested)
+                    while (!_cts.Token.IsCancellationRequested)
                     {
                         if (!_isStreaming)
                         {
-                            // Если поставили паузу — ждём, пока возобновят
                             await WaitWhilePausedAsync(_cts.Token);
                         }
 
-                        await writer.WriteLineAsync(line);
-                        Console.WriteLine($"{Name} → {line}");
-                        await Task.Delay(delay, _cts.Token);
+                        if (settings.GroupCount <= 0)
+                        {
+                            Console.WriteLine($"{Name} Указано некорректное количество объектов в группе");
+                            return;
+                        }
+
+                        if (settings.GroupCount == 1)
+                        {
+                            string? outputLine = await reader.ReadLineAsync();
+                            if (string.IsNullOrEmpty(outputLine))
+                            {
+                                Console.WriteLine($"{Name} Считана пустая строка");
+                                continue;
+                            }
+                            await writer.WriteLineAsync(outputLine);
+                            Console.WriteLine($"{Name} → {outputLine}");
+                            await Task.Delay(settings.Delay, _cts.Token);
+                        }
+                        else if (settings.GroupCount > 1)
+                        {
+                            var lines = new List<string>();
+                            for (int i = 0; i < settings.GroupCount && (line = await reader.ReadLineAsync()) != null; i++)
+                            {
+                                lines.Add(line);
+                            }
+                            if (lines.Count > 0)
+                            {
+                                string lineToSend = string.Join(settings.DataSeparator, lines) + settings.DataTerminator;
+
+                                // Добавляем заголовок и терминатор если нужно
+                                string outputLine = $"{settings.DataHeader}{lineToSend}{settings.DataTerminator}";
+
+                                await writer.WriteLineAsync(outputLine);
+                                Console.WriteLine($"{Name} → {outputLine}");
+                                await Task.Delay(settings.Delay, _cts.Token);
+                            }
+                        }
+
                     }
 
                     Console.WriteLine($"{Name}: достигнут конец файла");
@@ -118,16 +153,16 @@ namespace ScannerEmulator2._0.TCPScanner
         }
 
         // Начало отправки
-        public bool StartStreaming(int delay)
+        public bool StartStreaming(TaskSettings settings)
         {
             if (string.IsNullOrEmpty(_filePath))
             {
                 Console.WriteLine($"{Name}: нет назначенного файла!");
                 return false;
             }
-            _ = HandleClientAsync(delay);
+            _ = HandleClientAsync(settings);
             _isStreaming = true;
-            Console.WriteLine($"{Name}: трансляция запущена ({delay} мс)");
+            Console.WriteLine($"{Name}: трансляция запущена ({settings.Delay} мс)");
             return true;
         }
 
