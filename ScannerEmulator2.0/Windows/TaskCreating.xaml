@@ -62,12 +62,12 @@
                                  Text="Выберите файл, чтобы просмотреть содержимое..."
                                  IsReadOnly="False"
                                  AcceptsReturn="True"
-                                 TextWrapping="Wrap"
+                                 TextWrapping="NoWrap"
                                  VerticalScrollBarVisibility="Auto"
                                  HorizontalScrollBarVisibility="Auto"
                                  Margin="0,0,0,15"
                                  Background="White"
-                                 FontSize="14"
+                                 FontSize="13"
                                  TextChanged="FileContentTextBox_TextChanged"
                                  LostFocus="FileContentTextBox_LostFocus"/>
 
