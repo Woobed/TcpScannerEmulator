@@ -7,7 +7,7 @@ namespace ScannerEmulator2._0.Abstractions
         string Name { get; set; }
         void SetFile(string path);
         Task StartAsync();
-        Task HandleClientAsync(TcpClient client, CancellationToken token, int delay);
+        Task HandleClientAsync(int delay);
         bool StartStreaming(int delay);
 
         void PauseStreaming();
@@ -16,6 +16,9 @@ namespace ScannerEmulator2._0.Abstractions
 
         void StopStreaming();
         void Stop();
+        bool IsReady { get; }
+
+        Action InfoChanged { get; set; }
 
     }
 }

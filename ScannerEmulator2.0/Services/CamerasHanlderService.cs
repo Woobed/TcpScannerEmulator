@@ -1,12 +1,12 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.ViewModels;
-using System.Diagnostics;
 
 namespace ScannerEmulator2._0.Services
 {
     public class CamerasHanlderService
     {
         private List<ITcpCameraEmulator> tcpCameras { get; set; } = new();
+        public Action ListInfoChanged {  get; set; }
 
         public CamerasHanlderService()
         {
@@ -17,15 +17,13 @@ namespace ScannerEmulator2._0.Services
         {
             var instance = tcpCameras.Where(t => t.Name == name).FirstOrDefault();
             if (instance == null) return default;
-            //var type = instance.GetType();
-            //var vm = new EmulatorViewModel();
-            //Mapper.Map(instance, vm);
             return instance;
         }
-        public List<EmulatorViewModel> GetEmulatorList()
+        public List<EmulatorViewModel> GetEmulatorList(Func<ITcpCameraEmulator,bool> predicate = null)
         {
             List<EmulatorViewModel> list = new List<EmulatorViewModel>();
-            foreach (var camera in tcpCameras)
+            var filteredList = predicate == null ? tcpCameras : tcpCameras.Where(camera => predicate(camera));
+            foreach (var camera in filteredList)
             {
                 var type = camera.GetType();
                 var vm = new EmulatorViewModel();
@@ -34,16 +32,21 @@ namespace ScannerEmulator2._0.Services
             }
             return list;
         }
-        
         public string AddEmulator(ITcpCameraEmulator instance)
         {
+            instance.InfoChanged += InvokeListChanged;
             tcpCameras.Add(instance);
             return instance.Name;
+        }
+        private void InvokeListChanged()
+        {
+            ListInfoChanged.Invoke();
         }
         public void RemoveEmulator(string name)
         {
             tcpCameras.FirstOrDefault(i => i.Name == name).Stop();
             tcpCameras.RemoveAll(i => i.Name == name);
+            ListInfoChanged.Invoke();
         }
 
     }

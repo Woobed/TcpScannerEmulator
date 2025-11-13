@@ -16,6 +16,14 @@ namespace ScannerEmulator2._0.TCPScanner
         private string _filePath = String.Empty;
         public string Name { get; set; }
         public bool IsRunning { get; private set; }
+        public bool IsReady { get; private set; } = false;
+
+        public string FileName { get; set; } = String.Empty;
+
+        public Action InfoChanged { get; set; }
+
+        private TcpClient client;
+
 
         public TcpCameraEmulator(string ip, int port)
         {
@@ -30,7 +38,10 @@ namespace ScannerEmulator2._0.TCPScanner
                 throw new FileNotFoundException("Файл не найден", path);
 
             _filePath = path;
+            FileName = Path.GetFileName(path);
             Console.WriteLine($"{Name}: файл назначен → {path}");
+            IsReady = true;
+            InfoChanged.Invoke();
         }
 
         // Запуск 
@@ -51,24 +62,25 @@ namespace ScannerEmulator2._0.TCPScanner
         {
             while (!token.IsCancellationRequested)
             {
-                var client = await _listener!.AcceptTcpClientAsync(token);
+                client = await _listener!.AcceptTcpClientAsync(token);
                 Console.WriteLine($"{Name}: клиент подключен");
             }
         }
 
         // Обработка клиента 
-        public async Task HandleClientAsync(TcpClient client, CancellationToken token, int delay)
+        public async Task HandleClientAsync(int delay)
         {
+            if (client == null) return;
             using var stream = client.GetStream();
-            using var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+            using var writer = new StreamWriter(stream, new UTF8Encoding(false))  /*{ AutoFlush = true }*/;
 
             try
             {
-                while (!token.IsCancellationRequested)
+                while (!_cts.Token.IsCancellationRequested)
                 {
-                    if (!_isStreaming || string.IsNullOrEmpty(_filePath))
+                    if ((!_isStreaming) || string.IsNullOrEmpty(_filePath))
                     {
-                        await Task.Delay(500, token);
+                        await Task.Delay(500, _cts.Token);
                         continue;
                     }
 
@@ -76,17 +88,17 @@ namespace ScannerEmulator2._0.TCPScanner
                     using var reader = new StreamReader(fileStream, Encoding.UTF8);
 
                     string? line;
-                    while ((line = await reader.ReadLineAsync()) != null && !token.IsCancellationRequested)
+                    while ((line = await reader.ReadLineAsync()) != null && !_cts.Token.IsCancellationRequested)
                     {
                         if (!_isStreaming)
                         {
                             // Если поставили паузу — ждём, пока возобновят
-                            await WaitWhilePausedAsync(token);
+                            await WaitWhilePausedAsync(_cts.Token);
                         }
 
                         await writer.WriteLineAsync(line);
                         Console.WriteLine($"{Name} → {line}");
-                        await Task.Delay(delay, token);
+                        await Task.Delay(delay, _cts.Token);
                     }
 
                     Console.WriteLine($"{Name}: достигнут конец файла");
@@ -113,7 +125,7 @@ namespace ScannerEmulator2._0.TCPScanner
                 Console.WriteLine($"{Name}: нет назначенного файла!");
                 return false;
             }
-
+            _ = HandleClientAsync(delay);
             _isStreaming = true;
             Console.WriteLine($"{Name}: трансляция запущена ({delay} мс)");
             return true;

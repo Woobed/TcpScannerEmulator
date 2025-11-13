@@ -1,4 +1,5 @@
-﻿using ScannerEmulator2._0.Abstractions;
+﻿using Microsoft.Extensions.DependencyInjection;
+using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Factories;
 using ScannerEmulator2._0.Services;
 using ScannerEmulator2._0.TCPScanner;
@@ -27,8 +28,8 @@ namespace ScannerEmulator2._0.Windows
         public TaskCreating()
         {
             InitializeComponent();
-            _service = new CamerasHanlderService();
-            _factory = new EmulatorFactory(_service);
+            _service = App.AppHost.Services.GetRequiredService<CamerasHanlderService>();
+            _factory  = App.AppHost.Services.GetRequiredService<EmulatorFactory>();
             _viewModel = new(_service, _factory);
             LoadFiles();
             RefreshCamerasList();
@@ -184,22 +185,6 @@ namespace ScannerEmulator2._0.Windows
             }
         }
 
-        // === Запуск трансляции ===
-        private void StartCamera_Click(object sender, RoutedEventArgs e)
-        {
-            var button = (FrameworkElement)sender;
-            string name = button.Tag.ToString()!;
-            var camera = (TcpCameraEmulator)_service.GetEmulator(name);
-
-            if (_viewModel.StartStreaming(name, 500).Result)
-            {
-                MessageBox.Show($"Трансляция камеры {name} запущена");
-            }
-            else
-            {
-                MessageBox.Show($"Файл для отправки не был назначен");
-            }
-        }
 
         // === Удаление камеры ===
         private void DeleteCamera_Click(object sender, RoutedEventArgs e)

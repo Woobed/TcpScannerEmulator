@@ -8,6 +8,8 @@ namespace ScannerEmulator2._0.ViewModels
         public string Ip { get; set; } = string.Empty;
         public int Port { get; set; } = 0;
 
-        
+        public string FileName { get; set; }  = string.Empty;
+
+
     }
 }

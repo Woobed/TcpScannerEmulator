@@ -9,18 +9,12 @@
 
     <Grid Margin="10">
         <TabControl FontSize="14" BorderBrush="#CCC" BorderThickness="1">
-            <TabItem Header="🏠 Главная">
+            <TabItem Header="📸 Создание заданий">
                 <views:TaskCreating/>
             </TabItem>
 
-            <TabItem Header="📸 Эмулятор камер">
-                <views:TaskCreating/>
-            </TabItem>
-
-            <TabItem Header="⚙️ Настройки">
-                <TextBlock Text="Тут можно добавить настройки приложения" 
-                           VerticalAlignment="Center" HorizontalAlignment="Center"
-                           FontStyle="Italic" Foreground="Gray"/>
+            <TabItem Header="⚙️  Активные задания">
+                <views:TaskWorking/>
             </TabItem>
         </TabControl>
     </Grid>
