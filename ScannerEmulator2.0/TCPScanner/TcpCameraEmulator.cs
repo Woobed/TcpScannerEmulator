@@ -118,7 +118,7 @@ namespace ScannerEmulator2._0.TCPScanner
 
                         if (settings.GroupCount == 1)
                         {
-                            string? outputLine = await reader.ReadLineAsync();
+                            string? outputLine = await reader.ReadLineAsync() + settings.DataSeparator;
                             if (outputLine == null)
                             {
                                 // Достигнут конец файла - перезапускаем с начала
@@ -159,7 +159,7 @@ namespace ScannerEmulator2._0.TCPScanner
                                 break;
                             }
 
-                            string lineToSend = string.Join(settings.DataSeparator, lines);
+                            string lineToSend = string.Join(settings.DataSeparator, lines) + settings.DataSeparator;
                             string outputLine = $"{settings.DataHeader}{lineToSend}{settings.DataTerminator}";
 
                             await writer.WriteLineAsync(outputLine);
