@@ -9,7 +9,7 @@ namespace ScannerEmulator2._0.Abstractions
         void SetFile(string path);
         Task StartAsync();
         Task HandleClientAsync(TaskSettings settings);
-        bool StartStreaming(TaskSettings settings);
+        Task<bool> StartStreaming(TaskSettings settings);
 
         void PauseStreaming();
 

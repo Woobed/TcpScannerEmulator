@@ -69,7 +69,6 @@ namespace ScannerEmulator2._0.Windows
 
             _selectedFilePath = fullPath;
             FileContentTextBox.Text = File.ReadAllText(fullPath);
-            SelectedFileLabel.Text = $"Выбран файл: {fileName}";
         }
         private void FilesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -126,7 +125,6 @@ namespace ScannerEmulator2._0.Windows
             var button = (FrameworkElement)sender;
             string name = button.Tag.ToString()!;
             _viewModel.AssignFile(name, _selectedFilePath);
-            MessageBox.Show($"Файл назначен камере {name}");
         }
 
         private void DeleteFile_Click(object sender, RoutedEventArgs e)

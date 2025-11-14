@@ -1,5 +1,6 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Dto;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -23,8 +24,15 @@ namespace ScannerEmulator2._0.TCPScanner
 
         public Action InfoChanged { get; set; }
 
-        private TcpClient client;
+        public Action<int, int> SendNotification { get; set; }
 
+        private TcpClient client;
+        private Task _currentStreamingTask;
+
+        public int _sentLines { get; set; }
+        public int _finalLines { get; set; }
+        private int _totalLines;
+        private bool _isProcessing = false;
 
         public TcpCameraEmulator(string ip, int port)
         {
@@ -42,7 +50,7 @@ namespace ScannerEmulator2._0.TCPScanner
             FileName = Path.GetFileName(path);
             Console.WriteLine($"{Name}: файл назначен → {path}");
             IsReady = true;
-            InfoChanged.Invoke();
+            InfoChanged?.Invoke();
         }
 
         // Запуск 
@@ -72,30 +80,36 @@ namespace ScannerEmulator2._0.TCPScanner
         public async Task HandleClientAsync(TaskSettings settings)
         {
             if (client == null) return;
-            using var stream = client.GetStream();
-            using var writer = new StreamWriter(stream, new UTF8Encoding(false))  /*{ AutoFlush = true }*/;
 
             try
             {
+                using var stream = client.GetStream();
+                using var writer = new StreamWriter(stream, new UTF8Encoding(false)) { AutoFlush = true };
+
+                // ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ВНЕ ЦИКЛА - ОДИН РАЗ!
+                _totalLines = CountLines(_filePath);
+                _finalLines = settings.GroupCount > 1
+                    ? (int)Math.Ceiling((double)_totalLines / settings.GroupCount)
+                    : _totalLines;
+
+                // ОТКРЫВАЕМ ФАЙЛ ОДИН РАЗ - ВНЕ ЦИКЛА!
+                using var fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(fileStream, Encoding.UTF8);
+
                 while (!_cts.Token.IsCancellationRequested)
                 {
-                    if ((!_isStreaming) || string.IsNullOrEmpty(_filePath))
+                    // ЖДЕМ ПОКА ВКЛЮЧЕН СТРИМИНГ
+                    while (!_isStreaming && !_cts.Token.IsCancellationRequested)
                     {
-                        await Task.Delay(500, _cts.Token);
-                        continue;
+                        await Task.Delay(100, _cts.Token);
                     }
 
-                    using var fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    using var reader = new StreamReader(fileStream, Encoding.UTF8);
+                    if (_cts.Token.IsCancellationRequested) break;
 
                     string? line;
-                    while (!_cts.Token.IsCancellationRequested)
+                    // ОСНОВНОЙ ЦИКЛ ОТПРАВКИ ДАННЫХ
+                    while (_isStreaming && !_cts.Token.IsCancellationRequested)
                     {
-                        if (!_isStreaming)
-                        {
-                            await WaitWhilePausedAsync(_cts.Token);
-                        }
-
                         if (settings.GroupCount <= 0)
                         {
                             Console.WriteLine($"{Name} Указано некорректное количество объектов в группе");
@@ -105,13 +119,26 @@ namespace ScannerEmulator2._0.TCPScanner
                         if (settings.GroupCount == 1)
                         {
                             string? outputLine = await reader.ReadLineAsync();
+                            if (outputLine == null)
+                            {
+                                // Достигнут конец файла - перезапускаем с начала
+                                Console.WriteLine($"{Name}: достигнут конец файла, перезапуск");
+                                fileStream.Seek(0, SeekOrigin.Begin); // ПЕРЕМОТКА НА НАЧАЛО
+                                reader.DiscardBufferedData();
+                                _sentLines = 0; // СБРАСЫВАЕМ ТОЛЬКО ПРИ ПЕРЕЗАПУСКЕ ФАЙЛА
+                                break;
+                            }
+
                             if (string.IsNullOrEmpty(outputLine))
                             {
                                 Console.WriteLine($"{Name} Считана пустая строка");
                                 continue;
                             }
+
                             await writer.WriteLineAsync(outputLine);
-                            Console.WriteLine($"{Name} → {outputLine}");
+                            _sentLines++;
+                            SendNotification?.Invoke(_sentLines, _finalLines);
+                            Console.WriteLine($"{Name} → {outputLine} ({_sentLines}/{_finalLines})");
                             await Task.Delay(settings.Delay, _cts.Token);
                         }
                         else if (settings.GroupCount > 1)
@@ -121,47 +148,71 @@ namespace ScannerEmulator2._0.TCPScanner
                             {
                                 lines.Add(line);
                             }
-                            if (lines.Count > 0)
+
+                            if (lines.Count == 0)
                             {
-                                string lineToSend = string.Join(settings.DataSeparator, lines) + settings.DataTerminator;
-
-                                // Добавляем заголовок и терминатор если нужно
-                                string outputLine = $"{settings.DataHeader}{lineToSend}{settings.DataTerminator}";
-
-                                await writer.WriteLineAsync(outputLine);
-                                Console.WriteLine($"{Name} → {outputLine}");
-                                await Task.Delay(settings.Delay, _cts.Token);
+                                // Достигнут конец файла - перезапускаем с начала
+                                Console.WriteLine($"{Name}: достигнут конец файла, перезапуск");
+                                fileStream.Seek(0, SeekOrigin.Begin); // ПЕРЕМОТКА НА НАЧАЛО
+                                reader.DiscardBufferedData();
+                                _sentLines = 0; // СБРАСЫВАЕМ ТОЛЬКО ПРИ ПЕРЕЗАПУСКЕ ФАЙЛА
+                                break;
                             }
-                        }
 
+                            string lineToSend = string.Join(settings.DataSeparator, lines);
+                            string outputLine = $"{settings.DataHeader}{lineToSend}{settings.DataTerminator}";
+
+                            await writer.WriteLineAsync(outputLine);
+                            _sentLines++;
+                            SendNotification?.Invoke(_sentLines, _finalLines);
+
+                            Console.WriteLine($"{Name} → {outputLine} ({_sentLines}/{_finalLines})");
+                            await Task.Delay(settings.Delay, _cts.Token);
+                        }
                     }
 
-                    Console.WriteLine($"{Name}: достигнут конец файла");
-                    StopStreaming();
+                    // КОРОТКАЯ ПАУЗА ПЕРЕД СЛЕДУЮЩЕЙ ИТЕРАЦИЕЙ
+                    if (!_cts.Token.IsCancellationRequested)
+                    {
+                        await Task.Delay(100, _cts.Token);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"{Name}: ошибка или отключение клиента ({ex.Message})");
             }
-        }
-
-        private async Task WaitWhilePausedAsync(CancellationToken token)
-        {
-            while (!_isStreaming && !token.IsCancellationRequested)
-                await Task.Delay(100, token);
+            finally
+            {
+                _isProcessing = false;
+            }
         }
 
         // Начало отправки
-        public bool StartStreaming(TaskSettings settings)
+        public async Task <bool> StartStreaming(TaskSettings settings)
         {
             if (string.IsNullOrEmpty(_filePath))
             {
                 Console.WriteLine($"{Name}: нет назначенного файла!");
                 return false;
             }
-            _ = HandleClientAsync(settings);
+
+            // ЗАЩИТА ОТ ПОВТОРНОГО ЗАПУСКА
+            if (_isStreaming || _isProcessing)
+            {
+                Console.WriteLine($"{Name}: трансляция уже запущена");
+                return false;
+            }
+            if (client == null) await AcceptClientsAsync(_cts.Token);
+            _isProcessing = true;
             _isStreaming = true;
+
+            // ЗАПУСКАЕМ ТОЛЬКО ЕСЛИ ЕЩЕ НЕ ЗАПУЩЕН
+            if (_currentStreamingTask == null || _currentStreamingTask.IsCompleted)
+            {
+                _currentStreamingTask = HandleClientAsync(settings);
+            }
+
             Console.WriteLine($"{Name}: трансляция запущена ({settings.Delay} мс)");
             return true;
         }
@@ -176,16 +227,18 @@ namespace ScannerEmulator2._0.TCPScanner
         // Возобновление после паузы
         public void ResumeStreaming()
         {
-            _isStreaming = true;
+            _isStreaming = true; // ПРАВИЛЬНО - ТОЛЬКО _isStreaming!
             Console.WriteLine($"{Name}: трансляция возобновлена");
         }
+
         // Остановка после завершения файла
         public void StopStreaming()
         {
-            _cts.Cancel();
-            IsRunning = false;
             _isStreaming = false;
-            Console.WriteLine($"{Name} остановлена ");
+            _isProcessing = false;
+            _sentLines = 0;
+            SendNotification?.Invoke(_sentLines, _finalLines);
+            Console.WriteLine($"{Name} остановлена");
         }
 
         // Полная остановка
@@ -195,7 +248,26 @@ namespace ScannerEmulator2._0.TCPScanner
             _listener?.Stop();
             IsRunning = false;
             _isStreaming = false;
+            _isProcessing = false;
             Console.WriteLine($"{Name} остановлена и удалена");
+        }
+
+        public void DropTask()
+        {
+            IsReady = false;
+            _filePath = string.Empty;
+        }
+        public static int CountLines(string filePath)
+        {
+            int count = 0;
+            using (var reader = new StreamReader(filePath))
+            {
+                while (reader.ReadLine() != null)
+                {
+                    count++;
+                }
+            }
+            return count;
         }
     }
 }
