@@ -22,11 +22,16 @@ namespace ScannerEmulator2._0.ViewModels
         }
 
         
-        public async void CreateEmulator(string ip,int port)
+        public async Task<bool> CreateEmulator(string ip,int port)
         {
             var name = _factory.Create(ip, port);
+            if (name == string.Empty)
+            {
+                return false;
+            }
             var camera = _service.GetEmulator(name);
             await camera.StartAsync();
+            return true;
         }
         public List<EmulatorViewModel> GetEmulatorList()
         {

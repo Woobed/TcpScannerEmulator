@@ -29,7 +29,7 @@ namespace ScannerEmulator2._0.Windows
         {
             InitializeComponent();
             _service = App.AppHost.Services.GetRequiredService<CamerasHanlderService>();
-            _factory  = App.AppHost.Services.GetRequiredService<EmulatorFactory>();
+            _factory = App.AppHost.Services.GetRequiredService<EmulatorFactory>();
             _viewModel = new(_service, _factory);
             LoadFiles();
             RefreshCamerasList();
@@ -99,9 +99,14 @@ namespace ScannerEmulator2._0.Windows
 
             string ip = IpTextBox.Text.Trim();
 
-            _viewModel.CreateEmulator(ip, port);
-
-            RefreshCamerasList();
+            if (!_viewModel.CreateEmulator(ip, port).Result)
+            {
+                MessageBox.Show("Экземпляр уже создан");
+            }
+            else
+            {
+                RefreshCamerasList();
+            }
         }
 
         // === Обновление списка камер ===
@@ -129,11 +134,12 @@ namespace ScannerEmulator2._0.Windows
 
         private void DeleteFile_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedFilePath == null) {
+            if (_selectedFilePath == null)
+            {
                 MessageBox.Show("Выберете файл для удаления");
                 return;
             }
-            File.Delete( _selectedFilePath );
+            File.Delete(_selectedFilePath);
             SelectedFileLabel.Text = $"{System.IO.Path.GetFileName(_selectedFilePath)} удален";
             LoadFiles();
             _selectedFilePath = null;
