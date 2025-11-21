@@ -1,5 +1,4 @@
 ﻿using ScannerEmulator2._0.Abstractions;
-using ScannerEmulator2._0.ViewModels;
 
 namespace ScannerEmulator2._0.Services
 {
@@ -7,11 +6,6 @@ namespace ScannerEmulator2._0.Services
     {
         private List<ITcpCameraEmulator> tcpCameras { get; set; } = new();
         public Action ListInfoChanged {  get; set; }
-
-        public CamerasHanlderService()
-        {
-            
-        }
 
         public ITcpCameraEmulator GetEmulator(string name)
         {
