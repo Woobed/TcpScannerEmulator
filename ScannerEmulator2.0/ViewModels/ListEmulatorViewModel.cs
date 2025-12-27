@@ -9,7 +9,7 @@ namespace ScannerEmulator2._0.ViewModels
     {
         public List<EmulatorViewModel> emulators { get; set; }
 
-        public Action<List<TcpCameraEmulator>> ListChanged { get; set; }
+        public Action<List<TcpCameraEmulator>>? ListChanged { get; set; }
 
         private CamerasHanlderService _service;
         private EmulatorFactory _factory;

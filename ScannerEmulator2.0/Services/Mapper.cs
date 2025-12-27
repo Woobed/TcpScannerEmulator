@@ -82,11 +82,11 @@ namespace ScannerEmulator2._0.Services
         private static Delegate? CreateDelegate(object sourceProp, Type? genericType)
         {
             var valueProp = sourceProp.GetType().GetProperty("Value");
-            if (valueProp == null) return null;
+            if (valueProp == null || genericType == null) return null;
 
             var setMethod = valueProp.GetSetMethod();
             if (setMethod == null) return null;
-
+            
             var actionType = typeof(Action<>).MakeGenericType(genericType);
             return Delegate.CreateDelegate(actionType, sourceProp, setMethod);
         }
