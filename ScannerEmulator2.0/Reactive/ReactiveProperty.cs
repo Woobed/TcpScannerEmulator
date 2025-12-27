@@ -1,8 +1,8 @@
-﻿namespace ScannerEmulator2._0.ReactiveProperty
+﻿namespace ScannerEmulator2._0.Reactive
 {
     public class ReactiveProperty<T>
     {
-        public Action<T?>? OnProperyChanged { get; set; }
+        public Action<T?>? OnPropertyChanged { get; set; }
         private T? _value { get; set; }
         public T? Value
         {
@@ -13,7 +13,7 @@
             set
             {
                 _value = value;
-                OnProperyChanged?.Invoke(_value);
+                OnPropertyChanged?.Invoke(_value);
             }
         }
     }
