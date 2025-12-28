@@ -8,14 +8,14 @@ namespace ScannerEmulator2._0.Windows
 {
     public partial class TaskWorking : UserControl
     {
-        private readonly CamerasHanlderService _service;
+        private readonly CamerasHandlerService _service;
 
         private readonly Dictionary<string, Action<int, int>> handlersDictionary = new();
 
         public TaskWorking()
         {
             InitializeComponent();
-            _service = App.AppHost.Services.GetRequiredService<CamerasHanlderService>();
+            _service = App.AppHost.Services.GetRequiredService<CamerasHandlerService>();
 
             _service.ListInfoChanged += LoadActiveCameras;
         }

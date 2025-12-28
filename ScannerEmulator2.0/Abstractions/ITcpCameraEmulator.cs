@@ -5,7 +5,8 @@ namespace ScannerEmulator2._0.Abstractions
 {
     public interface ITcpCameraEmulator: IModel
     {
-        string Name { get; set; }
+        string Ip { get; set; }
+        int Port { get; set; }
         void SetFile(string path);
         Task StartAsync();
         Task<bool> StartStreaming(TaskSettings settings);

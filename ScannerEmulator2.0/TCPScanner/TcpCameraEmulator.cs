@@ -1,5 +1,6 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Dto;
+using ScannerEmulator2._0.Reactive;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -9,11 +10,10 @@ namespace ScannerEmulator2._0.TCPScanner
 {
     public class TcpCameraEmulator : ITcpCameraEmulator
     {
-        public int Port { get; set; }
-        public string Ip { get; set; }
-        public string Name { get; set; }
-        public bool IsRunning { get; private set; }
-        public bool IsReady { get; private set; } = false;
+        public ReactiveProperty<int> Port { get; set; }
+        public ReactiveProperty<string> Ip { get; set; }
+        public ReactiveProperty<bool> IsRunning { get; set; }
+        public ReactiveProperty<bool> IsReady { get; private set; } = new(false);
         public string FileName { get; set; } = string.Empty;
 
         private readonly CancellationTokenSource _cts = new();
@@ -42,7 +42,6 @@ namespace ScannerEmulator2._0.TCPScanner
         {
             Ip = ip;
             Port = port;
-            Name = $"{ip}:{port}";
         }
         public void SetFile(string path)
         {
@@ -52,7 +51,7 @@ namespace ScannerEmulator2._0.TCPScanner
             FileName = Path.GetFileName(path);
             IsReady = true;
 
-            Console.WriteLine($"{Name}: файл назначен: {path}");
+            //Console.WriteLine($"{Name}: файл назначен: {path}");
             InfoChanged?.Invoke();
         }
 
@@ -64,7 +63,7 @@ namespace ScannerEmulator2._0.TCPScanner
             _listener.Start();
             IsRunning = true;
 
-            Console.WriteLine($"{Name}: сервер запущен");
+            //Console.WriteLine($"{Name}: сервер запущен");
 
             _ = AcceptClientsAsync(_cts.Token);
             await Task.CompletedTask;
@@ -77,7 +76,7 @@ namespace ScannerEmulator2._0.TCPScanner
                 try
                 {
                     var client = await _listener!.AcceptTcpClientAsync(token);
-                    Console.WriteLine($"{Name}: клиент подключён");
+                    //Console.WriteLine($"{Name}: клиент подключён");
                     
                     lock (_clientLock)
                         _client = client;
@@ -186,17 +185,17 @@ namespace ScannerEmulator2._0.TCPScanner
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{Name}: ошибка клиента: {ex.Message}");
+                //Console.WriteLine($"{Name}: ошибка клиента: {ex.Message}");
             }
             finally
             {
-                Console.WriteLine($"{Name}: обработчик завершён");
+                //Console.WriteLine($"{Name}: обработчик завершён");
             }
         }
 
         private async Task HandleEOFAsync()
         {
-            Console.WriteLine($"{Name}: достигнут конец файла → перемотка");
+            //Console.WriteLine($"{Name}: достигнут конец файла → перемотка");
 
             _isStreaming = false;
 

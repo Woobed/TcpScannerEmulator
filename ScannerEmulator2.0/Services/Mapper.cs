@@ -1,7 +1,6 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Reactive;
 using System.Reflection;
-using System.Windows.Input;
 
 namespace ScannerEmulator2._0.Services
 {

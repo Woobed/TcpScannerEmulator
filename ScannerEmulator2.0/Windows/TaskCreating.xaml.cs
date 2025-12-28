@@ -1,14 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using ScannerEmulator2._0.Abstractions;
-using ScannerEmulator2._0.Factories;
 using ScannerEmulator2._0.Services;
-using ScannerEmulator2._0.TCPScanner;
-using ScannerEmulator2._0.ViewModels;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Shapes;
 
 namespace ScannerEmulator2._0.Windows
 {
@@ -17,9 +12,8 @@ namespace ScannerEmulator2._0.Windows
     /// </summary>
     public partial class TaskCreating : UserControl
     {
-        private readonly CamerasHanlderService _service;
-        private readonly EmulatorFactory _factory;
-        private ListEmulatorViewModel _viewModel;
+        private readonly CamerasHandlerService _emulators;
+        private readonly TaskHandlerService _tasks;
 
         private string? _selectedFilePath;
         private Timer autoSaveTimer;
@@ -28,9 +22,8 @@ namespace ScannerEmulator2._0.Windows
         public TaskCreating()
         {
             InitializeComponent();
-            _service = App.AppHost.Services.GetRequiredService<CamerasHanlderService>();
-            _factory = App.AppHost.Services.GetRequiredService<EmulatorFactory>();
-            _viewModel = new(_service, _factory);
+            _emulators = App.AppHost.Services.GetRequiredService<CamerasHandlerService>();
+            _tasks = App.AppHost.Services.GetRequiredService<TaskHandlerService>();
             LoadFiles();
             RefreshCamerasList();
         }
@@ -38,18 +31,18 @@ namespace ScannerEmulator2._0.Windows
         // === Загрузка файлов из папки Files ===
         private void LoadFiles()
         {
-            string folderPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Files");
+            string folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Files");
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
 
             var files = Directory.GetFiles(folderPath, "*.txt")
-                                 .Select(System.IO.Path.GetFileName)
+                                 .Select(Path.GetFileName)
                                  .ToList();
 
             FilesListBox.ItemsSource = files;
         }
 
-        // === При выборе файла ===
+        // При выборе файла 
         private void SelectFile_Click(object sender, RoutedEventArgs e)
         {
             if (FilesListBox.SelectedItem == null)
@@ -88,7 +81,7 @@ namespace ScannerEmulator2._0.Windows
             SelectedFileLabel.Text = $"Выбран файл: {fileName}";
         }
 
-        // === Создание камеры ===
+        // Создание камеры
         private async void CreateCamera_Click(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(PortTextBox.Text, out int port))
@@ -99,7 +92,7 @@ namespace ScannerEmulator2._0.Windows
 
             string ip = IpTextBox.Text.Trim();
 
-            if (!_viewModel.CreateEmulator(ip, port).Result)
+            if (!_emulators.CreateEmulator(ip, port))
             {
                 MessageBox.Show("Экземпляр уже создан");
             }
@@ -109,7 +102,7 @@ namespace ScannerEmulator2._0.Windows
             }
         }
 
-        // === Обновление списка камер ===
+        // Обновление списка камер
         private void RefreshCamerasList()
         {
             CamerasListBox.ItemsSource = null;
@@ -118,7 +111,7 @@ namespace ScannerEmulator2._0.Windows
             CamerasListBox.ItemsSource = cameras;
         }
 
-        // === Назначить файл камере ===
+        // Создать задание
         private void AssignFile_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedFilePath == null)
@@ -129,7 +122,9 @@ namespace ScannerEmulator2._0.Windows
 
             var button = (FrameworkElement)sender;
             string name = button.Tag.ToString()!;
-            _viewModel.AssignFile(name, _selectedFilePath);
+
+
+            //_viewModel.AssignFile(name, _selectedFilePath);
         }
 
         private void DeleteFile_Click(object sender, RoutedEventArgs e)

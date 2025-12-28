@@ -23,7 +23,7 @@ namespace ScannerEmulator2._0
                     
                     services.AddSingleton<MainWindow>();
                     //services.AddSingleton<TaskCreating>();
-                    services.AddSingleton<CamerasHanlderService>();
+                    services.AddSingleton<CamerasHandlerService>();
                     services.AddSingleton<EmulatorFactory>();
                     
                 })

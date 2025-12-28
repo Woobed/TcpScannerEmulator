@@ -4,6 +4,11 @@
     {
         public Action<T?>? OnPropertyChanged { get; set; }
         private T? _value { get; set; }
+
+        public ReactiveProperty(T value)
+        {
+            _value = value;
+        }
         public T? Value
         {
             get
