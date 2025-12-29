@@ -16,7 +16,7 @@ namespace ScannerEmulator2._0.Windows
         private readonly TaskHandlerService _tasks;
 
         private string? _selectedFilePath;
-        private Timer autoSaveTimer;
+        private Timer? autoSaveTimer;
         private bool isTextChanged = false;
 
         public TaskCreating()
@@ -91,8 +91,8 @@ namespace ScannerEmulator2._0.Windows
             }
 
             string ip = IpTextBox.Text.Trim();
-
-            if (!_emulators.CreateEmulator(ip, port))
+            var result = await _emulators.CreateEmulator(ip, port, RefreshCamerasList);
+            if (!result)
             {
                 MessageBox.Show("Экземпляр уже создан");
             }
@@ -103,16 +103,16 @@ namespace ScannerEmulator2._0.Windows
         }
 
         // Обновление списка камер
-        private void RefreshCamerasList()
+        private void RefreshCamerasList(bool value = false)
         {
             CamerasListBox.ItemsSource = null;
-            var cameras = _service.GetEmulatorList();
+            var cameras = _emulators.GetEmulatorList();
 
             CamerasListBox.ItemsSource = cameras;
         }
 
         // Создать задание
-        private void AssignFile_Click(object sender, RoutedEventArgs e)
+        private void CreateTask_Click(object sender, RoutedEventArgs e)
         {
             if (_selectedFilePath == null)
             {
@@ -121,10 +121,13 @@ namespace ScannerEmulator2._0.Windows
             }
 
             var button = (FrameworkElement)sender;
-            string name = button.Tag.ToString()!;
+            string name = button.Tag.ToString();
 
-
-            //_viewModel.AssignFile(name, _selectedFilePath);
+            var cameraIpPort = (CamerasListBox.ItemsSource as List<EmulatorViewModel>)?.Where(e => e.Name.Value == name).Select(e => (e.Ip, e.Port)).FirstOrDefault();
+            if (cameraIpPort != null)
+            {
+                _tasks.CreateTask(_selectedFilePath, cameraIpPort.Value.Ip.Value, cameraIpPort.Value.Port.Value);
+            }
         }
 
         private void DeleteFile_Click(object sender, RoutedEventArgs e)
@@ -190,7 +193,7 @@ namespace ScannerEmulator2._0.Windows
         {
             var button = (FrameworkElement)sender;
             string name = button.Tag.ToString()!;
-            _service.RemoveEmulator(name);
+            _emulators.RemoveEmulator(name);
             RefreshCamerasList();
         }
 
@@ -214,7 +217,6 @@ namespace ScannerEmulator2._0.Windows
 
         private void FileContentTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            // Сохраняем при потере фокуса
             if (isTextChanged)
             {
                 AutoSaveFile();
@@ -233,7 +235,6 @@ namespace ScannerEmulator2._0.Windows
                 AutoSaveStatusText.Text = "Автосохранено";
                 AutoSaveStatusText.Foreground = Brushes.Green;
 
-                // Через 3 секунды очищаем статус
                 var clearTimer = new System.Threading.Timer(_ =>
                 {
                     Dispatcher.Invoke(() =>

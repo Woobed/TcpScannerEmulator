@@ -1,25 +1,35 @@
-﻿namespace ScannerEmulator2._0.Reactive
+﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace ScannerEmulator2._0.Reactive
 {
-    public class ReactiveProperty<T>
+    public class ReactiveProperty<T> : INotifyPropertyChanged
     {
-        public Action<T?>? OnPropertyChanged { get; set; }
-        private T? _value { get; set; }
+        private T? _value;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public ReactiveProperty(T value)
         {
             _value = value;
         }
+
         public T? Value
         {
-            get
-            {
-                return _value;
-            }
+            get => _value;
             set
             {
-                _value = value;
-                OnPropertyChanged?.Invoke(_value);
+                if (!EqualityComparer<T>.Default.Equals(_value, value))
+                {
+                    _value = value;
+                    OnPropertyChanged(nameof(Value));
+                }
             }
+        }
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

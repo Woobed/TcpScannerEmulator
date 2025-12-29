@@ -13,7 +13,7 @@ namespace ScannerEmulator2._0
     /// </summary>
     public partial class App : Application
     {
-        public static IHost AppHost { get; private set; }
+        public static IHost? AppHost { get; private set; }
 
         public App()
         {
@@ -25,6 +25,8 @@ namespace ScannerEmulator2._0
                     //services.AddSingleton<TaskCreating>();
                     services.AddSingleton<CamerasHandlerService>();
                     services.AddSingleton<EmulatorFactory>();
+                    services.AddSingleton<TaskHandlerService>();
+
                     
                 })
                 .Build();

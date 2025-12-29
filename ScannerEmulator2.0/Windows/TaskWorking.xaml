@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
 
-    <Viewbox Stretch="Uniform" StretchDirection="Both">
+    <!--<Viewbox Stretch="Uniform" StretchDirection="Both">
         <Border Width="980" Height="630" Background="White" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
@@ -14,12 +14,12 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- === Заголовок === -->
+                --><!-- === Заголовок === --><!--
                 <TextBlock Grid.Row="0" Text="🎥 Управление активными камерами"
                            FontSize="26" FontWeight="Bold"
                            Margin="10,0,0,20"/>
 
-                <!-- === Список камер === -->
+                --><!-- === Список камер === --><!--
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <ItemsControl x:Name="ActiveCamerasPanel">
                         <ItemsControl.ItemTemplate>
@@ -34,7 +34,7 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- Верхняя строка: Название камеры и кнопка X -->
+                                        --><!-- Верхняя строка: Название камеры и кнопка X --><!--
                                         <Grid Grid.Row="0" Margin="0,0,0,10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -50,7 +50,7 @@
                                                            Margin="0,4,0,0"/>
                                             </StackPanel>
 
-                                            <!-- Кнопка X в правом верхнем углу -->
+                                            --><!-- Кнопка X в правом верхнем углу --><!--
                                             <Button Grid.Column="1" 
                                                     Content="✕"
                                                     Tag="{Binding Name}"
@@ -83,7 +83,7 @@
                                             </Button>
                                         </Grid>
 
-                                        <!-- Поля настроек с заголовками -->
+                                        --><!-- Поля настроек с заголовками --><!--
                                         <Border Grid.Row="1" 
                                                 Background="#f8f9fa" 
                                                 BorderBrush="#e9ecef" 
@@ -107,7 +107,7 @@
                                                         <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
 
-                                                    <!-- Header -->
+                                                    --><!-- Header --><!--
                                                     <StackPanel Grid.Column="0" Orientation="Vertical" Margin="0,0,8,0">
                                                         <TextBlock Text="Header" 
                                                                    FontSize="11" 
@@ -125,7 +125,7 @@
                                                                  ToolTip="Заголовок данных"/>
                                                     </StackPanel>
 
-                                                    <!-- Terminator -->
+                                                    --><!-- Terminator --><!--
                                                     <StackPanel Grid.Column="1" Orientation="Vertical" Margin="4,0,4,0">
                                                         <TextBlock Text="Terminator" 
                                                                    FontSize="11" 
@@ -143,7 +143,7 @@
                                                                  ToolTip="Терминатор данных"/>
                                                     </StackPanel>
 
-                                                    <!-- Separator -->
+                                                    --><!-- Separator --><!--
                                                     <StackPanel Grid.Column="2" Orientation="Vertical" Margin="4,0,4,0">
                                                         <TextBlock Text="Separator" 
                                                                    FontSize="11" 
@@ -161,7 +161,7 @@
                                                                  ToolTip="Разделитель данных"/>
                                                     </StackPanel>
 
-                                                    <!-- Delay -->
+                                                    --><!-- Delay --><!--
                                                     <StackPanel Grid.Column="3" Orientation="Vertical" Margin="4,0,4,0">
                                                         <TextBlock Text="Delay (ms)" 
                                                                    FontSize="11" 
@@ -179,7 +179,7 @@
                                                                  ToolTip="Задержка в миллисекундах"/>
                                                     </StackPanel>
 
-                                                    <!-- GroupCount -->
+                                                    --><!-- GroupCount --><!--
                                                     <StackPanel Grid.Column="4" Orientation="Vertical" Margin="8,0,0,0">
                                                         <TextBlock Text="Group Count" 
                                                                    FontSize="11" 
@@ -200,7 +200,7 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <!-- ProgressBar для отображения прогресса -->
+                                        --><!-- ProgressBar для отображения прогресса --><!--
                                         <StackPanel Grid.Row="2" Orientation="Vertical" Margin="0,0,0,10">
                                             <TextBlock Text="Прогресс отправки:" 
                                                        FontSize="11" 
@@ -226,7 +226,7 @@
                                                        Margin="0,4,0,0"/>
                                         </StackPanel>
 
-                                        <!-- Кнопки управления -->
+                                        --><!-- Кнопки управления --><!--
                                         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Content="▶ Начать"
                                                     Tag="{Binding Name}"
@@ -332,7 +332,7 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- === Нижняя панель === -->
+                --><!-- === Нижняя панель === --><!--
                 <TextBlock Grid.Row="2" x:Name="StatusLabel"
                            Text="Отображаются все активные камеры"
                            HorizontalAlignment="Center"
@@ -342,5 +342,5 @@
                            Margin="0,15,0,0"/>
             </Grid>
         </Border>
-    </Viewbox>
+    </Viewbox>-->
 </UserControl>

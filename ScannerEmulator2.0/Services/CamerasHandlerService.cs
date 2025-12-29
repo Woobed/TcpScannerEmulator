@@ -1,11 +1,14 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Factories;
+using ScannerEmulator2._0.Reactive;
+using ScannerEmulator2._0.TCPScanner;
 
 namespace ScannerEmulator2._0.Services
 {
     public class CamerasHandlerService
     {
-        private List<ITcpCameraEmulator> tcpCameras { get; set; } = new();
+        private List<TcpCameraEmulator> tcpCameras { get; set; } = new();
+        private List<EmulatorViewModel> vms = new List<EmulatorViewModel>();
         public Action? ListInfoChanged { get; set; }
 
         private readonly EmulatorFactory _factory;
@@ -15,33 +18,46 @@ namespace ScannerEmulator2._0.Services
             _factory = factory;
         }
 
-        public ITcpCameraEmulator? GetEmulator(string ip, int port)
+        public TcpCameraEmulator? GetEmulator(string ip, int port)
         {
-            var instance = tcpCameras.Where(t => t.Ip == ip && t.Port == port).FirstOrDefault();
+            var instance = tcpCameras.Where(t => t.Ip.Value == ip && t.Port.Value == port).FirstOrDefault();
             if (instance == null) return null;
             return instance;
         }
-        
-        public List<EmulatorViewModel> GetEmulatorList(Func<ITcpCameraEmulator, bool>? predicate = null)
+
+        //public List<EmulatorViewModel> GetEmulatorList(Func<ITcpCameraEmulator, bool>? predicate = null)
+        //{
+        //    var filteredList = predicate == null ? tcpCameras : tcpCameras.Where(camera => predicate(camera));
+        //    return vms;
+        //}
+        public List<EmulatorViewModel> GetEmulatorList()
         {
-            List<EmulatorViewModel> list = new List<EmulatorViewModel>();
-            var filteredList = predicate == null ? tcpCameras : tcpCameras.Where(camera => predicate(camera));
-            foreach (var camera in filteredList)
+            return vms;
+        }
+        public async Task<bool> CreateEmulator(string ip, int port, Delegate updateMethod)
+        {
+            if (!tcpCameras.Where(t => t.Ip.Value == ip && t.Port.Value == port).Any())
             {
-                var type = camera.GetType();
+                var camera = _factory.Create(ip, port);
+                tcpCameras.Add(camera);
                 var vm = new EmulatorViewModel();
                 Mapper.Map(camera, vm);
-                list.Add(vm);
-            }
-            return list;
-        }
-        
-        public bool CreateEmulator(string ip, int port)
-        {
-            if (!tcpCameras.Where(t => t.Ip == ip && t.Port == port).Any())
-            {
-                tcpCameras.Add(_factory.Create(ip, port));
+                vms.Add(vm);
+
+                vm.IsConnected.PropertyChanged += (sender, e) =>
+                {
+                    if (e.PropertyName == nameof(ReactiveProperty<bool>.Value))
+                    {
+                        // Преобразуем Delegate в Action<bool> и вызываем
+                        if (updateMethod is Action<bool> action)
+                        {
+                            action(vm.IsConnected.Value);
+                        }
+                    }
+                };
+
                 InvokeListChanged();
+                await camera.StartAsync();
                 return true;
             }
             return false;
@@ -52,11 +68,15 @@ namespace ScannerEmulator2._0.Services
             ListInfoChanged?.Invoke();
         }
 
-        public void RemoveEmulator(string ip, int port)
+        public void RemoveEmulator(string name)
         {
-            var result = tcpCameras.RemoveAll(t => t.Ip == ip && t.Port == port);
+            tcpCameras.FirstOrDefault(t => t.Name.Value == name)?.Stop();
+            var result = tcpCameras.RemoveAll(t => t.Name.Value == name);
             if (result != 0)
             {
+                var vm = vms.FirstOrDefault(t => t.Name.Value == name);
+                vms.RemoveAll(t => t.Name.Value == name);
+                vm?.Dispose();
                 InvokeListChanged();
             }
         }

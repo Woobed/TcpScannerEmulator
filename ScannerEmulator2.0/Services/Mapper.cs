@@ -1,5 +1,6 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Reactive;
+using System.ComponentModel;
 using System.Reflection;
 
 namespace ScannerEmulator2._0.Services
@@ -21,73 +22,126 @@ namespace ScannerEmulator2._0.Services
             foreach (var modelPropInfo in modelReactiveProps)
             {
                 var vmPropInfo = VMReactiveProps.FirstOrDefault(p => p.Name == modelPropInfo.Name);
-                if (vmPropInfo != null && vmPropInfo.CanWrite && vmPropInfo.CanRead)
+                if (vmPropInfo != null && vmPropInfo.CanRead)
                 {
-                    // значения реактивных свойств (в этом случае сами объекты ReactiveProperty)
                     var modelReactive = modelPropInfo.GetValue(model);
                     var vmReactive = vmPropInfo.GetValue(vm);
 
                     if (modelReactive != null && vmReactive != null)
                     {
-                        // получаем тип T из Action
-                        var valueType = modelPropInfo.PropertyType.GetGenericArguments()[0];
+                        // Синхронизируем начальные значения
+                        SyncInitialValue(modelReactive, vmReactive);
 
-                        var updateModel = CreateDelegate(modelReactive, valueType);
-                        var updateVM = CreateDelegate(vmReactive, valueType);
-
-                        if (updateModel != null && updateVM != null)
-                        {
-                            BindTwoWay(modelReactive, vmReactive, updateModel, updateVM);
-
-                            SyncValues(modelReactive, vmReactive);
-                        }
+                        // Создаем двустороннюю привязку
+                        BindTwoWay(modelReactive, vmReactive);
                     }
                 }
             }
         }
-        private static void SyncValues(object source, object target)
-        {
-            // достаю значение из модели и присваиваю значение Vm
-            var sourceValue = source.GetType().GetProperty("Value")?.GetValue(source);
-            var targetValueProp = target.GetType().GetProperty("Value");
 
-            if (sourceValue != null && targetValueProp != null)
+        private static void SyncInitialValue(object source, object target)
+        {
+            var sourceValue = GetReactivePropertyValue(source);
+            if (sourceValue != null)
             {
-                targetValueProp.SetValue(target, sourceValue);
+                SetReactivePropertyValue(target, sourceValue);
             }
         }
-        private static void BindTwoWay(
-            object source, object target,
-            Delegate sourceToTarget, Delegate targetToSource)
+
+        private static void BindTwoWay(object source, object target)
         {
-            var modelProp = source.GetType()
-                .GetProperty("OnPropertyChanged", BindingFlags.Public | BindingFlags.Instance);
-            var vmProp = target.GetType()
-                .GetProperty("OnPropertyChanged", BindingFlags.Public | BindingFlags.Instance);
+            // Создаем обработчики событий
+            PropertyChangedEventHandler sourceHandler = null;
+            PropertyChangedEventHandler targetHandler = null;
 
-            // значения OnPropertyChanged внутри самих ReactiveProperty (делегаты)
-            var modelAction = modelProp?.GetValue(source) as Delegate;
-            var vmAction = vmProp?.GetValue(target) as Delegate;
+            // Обработчик для изменений в source
+            sourceHandler = (s, e) =>
+            {
+                if (e.PropertyName == "Value")
+                {
+                    // Временно отписываемся от target, чтобы избежать цикла
+                    var targetAsNotify = target as INotifyPropertyChanged;
+                    if (targetAsNotify != null && targetHandler != null)
+                    {
+                        targetAsNotify.PropertyChanged -= targetHandler;
 
+                        try
+                        {
+                            var sourceValue = GetReactivePropertyValue(source);
+                            SetReactivePropertyValue(target, sourceValue);
+                        }
+                        finally
+                        {
+                            // Снова подписываемся
+                            targetAsNotify.PropertyChanged += targetHandler;
+                        }
+                    }
+                }
+            };
 
-            var sourceNewAction = modelAction != null ? Delegate.Combine(modelAction, targetToSource) : targetToSource;
-            modelProp?.SetValue(source, sourceNewAction);
+            // Обработчик для изменений в target
+            targetHandler = (s, e) =>
+            {
+                if (e.PropertyName == "Value")
+                {
+                    // Временно отписываемся от source, чтобы избежать цикла
+                    var sourceAsNotify = source as INotifyPropertyChanged;
+                    if (sourceAsNotify != null && sourceHandler != null)
+                    {
+                        sourceAsNotify.PropertyChanged -= sourceHandler;
 
-            var targetNewAction = vmAction != null ? Delegate.Combine(vmAction, sourceToTarget) : sourceToTarget;
-            vmProp?.SetValue(target, targetNewAction);
+                        try
+                        {
+                            var targetValue = GetReactivePropertyValue(target);
+                            SetReactivePropertyValue(source, targetValue);
+                        }
+                        finally
+                        {
+                            // Снова подписываемся
+                            sourceAsNotify.PropertyChanged += sourceHandler;
+                        }
+                    }
+                }
+            };
 
+            // Подписываемся на события
+            var sourceAsNotify = source as INotifyPropertyChanged;
+            var targetAsNotify = target as INotifyPropertyChanged;
+
+            if (sourceAsNotify != null)
+            {
+                sourceAsNotify.PropertyChanged += sourceHandler;
+            }
+
+            if (targetAsNotify != null)
+            {
+                targetAsNotify.PropertyChanged += targetHandler;
+            }
         }
 
-        private static Delegate? CreateDelegate(object sourceProp, Type? genericType)
+        private static object GetReactivePropertyValue(object reactiveProperty)
         {
-            var valueProp = sourceProp.GetType().GetProperty("Value");
-            if (valueProp == null || genericType == null) return null;
+            return reactiveProperty.GetType()
+                .GetProperty("Value", BindingFlags.Public | BindingFlags.Instance)
+                ?.GetValue(reactiveProperty);
+        }
 
-            var setMethod = valueProp.GetSetMethod();
-            if (setMethod == null) return null;
-            
-            var actionType = typeof(Action<>).MakeGenericType(genericType);
-            return Delegate.CreateDelegate(actionType, sourceProp, setMethod);
+        private static void SetReactivePropertyValue(object reactiveProperty, object value)
+        {
+            var valueProp = reactiveProperty.GetType()
+                .GetProperty("Value", BindingFlags.Public | BindingFlags.Instance);
+
+            if (valueProp != null && value != null)
+            {
+                // Конвертируем значение к нужному типу, если необходимо
+                var targetType = valueProp.PropertyType;
+                if (value.GetType() != targetType)
+                {
+                    value = Convert.ChangeType(value, targetType);
+                }
+
+                valueProp.SetValue(reactiveProperty, value);
+            }
         }
     }
 }

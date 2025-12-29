@@ -5,244 +5,59 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Channels;
 
 namespace ScannerEmulator2._0.TCPScanner
 {
-    public class TcpCameraEmulator : ITcpCameraEmulator
+    public class TcpCameraEmulator : IModel
     {
-        public ReactiveProperty<int> Port { get; set; }
-        public ReactiveProperty<string> Ip { get; set; }
-        public ReactiveProperty<bool> IsRunning { get; set; }
-        public ReactiveProperty<bool> IsReady { get; private set; } = new(false);
-        public string FileName { get; set; } = string.Empty;
+        public ReactiveProperty<string> Name { get; set; } = new(string.Empty);
+        public ReactiveProperty<int> Port { get; set; } = new(0);
+        public ReactiveProperty<string> Ip { get; set; } = new(string.Empty);
+        public ReactiveProperty<bool> IsConnected { get; set; } = new(false);
+        public bool IsRunning { get; set; } = false;
+        public bool IsReady { get; private set; } = true;
 
-        private readonly CancellationTokenSource _cts = new();
+        public Action? InfoChanged { get; set; }
+
         private TcpListener? _listener;
         private TcpClient? _client;
         private readonly object _clientLock = new();
 
-        private bool _isStreaming = false;
-        private string _filePath = string.Empty;
+        private CancellationTokenSource? _cts;
 
-        private TaskSettings? _lastSettings;
-
-        public Action InfoChanged { get; set; }
-        public Action<int, int> SendNotification { get; set; }
-
-        private int _sentLines = 0;
-        private int _finalLines = 0;
-        private int _totalLines = 0;
-
-        private FileStream? _fileStream;
-        private StreamReader? _reader;
-
-        private int _clientHandlerRunning = 0;
+        private readonly Channel<OutgoingPacket> _channel =
+            Channel.CreateUnbounded<OutgoingPacket>();
 
         public TcpCameraEmulator(string ip, int port)
         {
-            Ip = ip;
-            Port = port;
-        }
-        public void SetFile(string path)
-        {
-            if (!File.Exists(path)) throw new FileNotFoundException("Файл не найден", path);
-
-            _filePath = path;
-            FileName = Path.GetFileName(path);
-            IsReady = true;
-
-            //Console.WriteLine($"{Name}: файл назначен: {path}");
-            InfoChanged?.Invoke();
+            Ip.Value = ip;
+            Port.Value = port;
+            Name.Value = $"{ip}:{port}";
         }
 
         public async Task StartAsync()
         {
-            if (IsRunning) return;
+            if (IsRunning)
+                return;
 
-            _listener = new TcpListener(IPAddress.Parse(Ip), Port);
+            _cts = new CancellationTokenSource();
+
+            _listener = new TcpListener(IPAddress.Parse(Ip.Value), Port.Value);
             _listener.Start();
+
             IsRunning = true;
 
-            //Console.WriteLine($"{Name}: сервер запущен");
+            _ = UpdateConnectionState(_cts.Token);
+            _ = AcceptClientLoop(_cts.Token);
+            _ = WriterLoop(_cts.Token);
 
-            _ = AcceptClientsAsync(_cts.Token);
             await Task.CompletedTask;
-        }
-
-        private async Task AcceptClientsAsync(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    var client = await _listener!.AcceptTcpClientAsync(token);
-                    //Console.WriteLine($"{Name}: клиент подключён");
-                    
-                    lock (_clientLock)
-                        _client = client;
-
-                    TryStartClientHandler();
-                }
-                catch
-                {
-                    if (token.IsCancellationRequested) return;
-                }
-            }
-        }
-
-        private void TryStartClientHandler()
-        {
-            if (Interlocked.CompareExchange(ref _clientHandlerRunning, 1, 0) == 0)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try { await HandleClientAsync(_cts.Token); }
-                    finally { Interlocked.Exchange(ref _clientHandlerRunning, 0); }
-                });
-            }
-        }
-
-        private async Task HandleClientAsync(CancellationToken token)
-        {
-            TcpClient? localClient;
-            lock (_clientLock)
-                localClient = _client;
-
-            if (localClient == null) return;
-
-            try
-            {
-                using var stream = localClient.GetStream();
-                using var writer = new StreamWriter(stream, new UTF8Encoding(false)) { AutoFlush = true };
-
-                await PrepareFileAsync();
-
-                while (!token.IsCancellationRequested)
-                {
-                    if (!_isStreaming)
-                    {
-                        await Task.Delay(50, token);
-                        continue;
-                    }
-
-                    var settings = _lastSettings;
-                    if (settings == null)
-                    {
-                        _isStreaming = false;
-                        continue;
-                    }
-
-                    _finalLines = settings.GroupCount == 1
-                        ? _totalLines
-                        : (int)Math.Ceiling((double)_totalLines / settings.GroupCount);
-
-
-                    if (settings.GroupCount == 1)
-                    {
-                        var line = await _reader!.ReadLineAsync();
-                        if (line == null)
-                        {
-                            await HandleEOFAsync();
-                            continue;
-                        }
-
-                        await writer.WriteAsync(line + settings.DataSeparator);
-
-                        int sent = Interlocked.Increment(ref _sentLines);
-                        SendNotification?.Invoke(sent, _finalLines);
-
-                        await Task.Delay(settings.Delay, token);
-                    }
-                    else
-                    {
-                        var group = new List<string>();
-                        for (int i = 0; i < settings.GroupCount; i++)
-                        {
-                            var line = await _reader!.ReadLineAsync();
-                            if (line == null) break;
-                            group.Add(line);
-                        }
-
-                        if (group.Count == 0)
-                        {
-                            await HandleEOFAsync();
-                            continue;
-                        }
-
-                        string payload = settings.DataHeader +
-                                         string.Join(settings.DataSeparator, group) +
-                                         settings.DataSeparator +
-                                         settings.DataTerminator;
-
-                        await writer.WriteAsync(payload);
-
-                        int sent = Interlocked.Increment(ref _sentLines);
-                        SendNotification?.Invoke(sent, _finalLines);
-
-                        await Task.Delay(settings.Delay, token);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                //Console.WriteLine($"{Name}: ошибка клиента: {ex.Message}");
-            }
-            finally
-            {
-                //Console.WriteLine($"{Name}: обработчик завершён");
-            }
-        }
-
-        private async Task HandleEOFAsync()
-        {
-            //Console.WriteLine($"{Name}: достигнут конец файла → перемотка");
-
-            _isStreaming = false;
-
-            await PrepareFileAsync();
-
-            Interlocked.Exchange(ref _sentLines, 0);
-            SendNotification?.Invoke(0, _finalLines);
-        }
-
-        private async Task PrepareFileAsync()
-        {
-            _reader?.Dispose();
-            _fileStream?.Dispose();
-
-            _fileStream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            _reader = new StreamReader(_fileStream, Encoding.UTF8);
-
-            _totalLines = CountLines(_filePath);
-            await Task.CompletedTask;
-        }
-
-        public Task<bool> StartStreaming(TaskSettings settings)
-        {
-            if (!IsReady) return Task.FromResult(false);
-
-            Interlocked.Exchange(ref _sentLines, 0);
-            _lastSettings = settings;
-            _isStreaming = true;
-
-            return Task.FromResult(true);
-        }
-
-        public void PauseStreaming() => _isStreaming = false;
-
-        public void ResumeStreaming() => _isStreaming = true;
-
-        public void StopStreaming()
-        {
-            _isStreaming = false;
-            Interlocked.Exchange(ref _sentLines, 0);
-            SendNotification?.Invoke(0, _finalLines);
         }
 
         public void Stop()
         {
-            _cts.Cancel();
-            _listener?.Stop();
+            _cts?.Cancel();
 
             lock (_clientLock)
             {
@@ -250,21 +65,118 @@ namespace ScannerEmulator2._0.TCPScanner
                 _client = null;
             }
 
+            _listener?.Stop();
+            IsConnected.Value = false;
             IsRunning = false;
         }
 
-        public void DropTask()
+        public Guid EnqueueTask(CameraSendTask task)
         {
-            IsReady = false;
-            _filePath = string.Empty;
+            _ = task.RunAsync(_channel.Writer, _cts!.Token);
+
+            return task.Id.Value;
         }
 
-        public static int CountLines(string filePath)
+        private async Task AcceptClientLoop(CancellationToken token)
         {
-            int count = 0;
-            using var reader = new StreamReader(filePath);
-            while (reader.ReadLine() != null) count++;
-            return count;
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var client = await _listener!.AcceptTcpClientAsync(token);
+
+                    lock (_clientLock)
+                    {
+                        _client?.Close();
+                        _client = client;
+                    }
+                }
+                catch
+                {
+                    if (token.IsCancellationRequested)
+                        return;
+                }
+            }
+        }
+
+        private async Task WriterLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                TcpClient? client;
+
+                lock (_clientLock)
+                    client = _client;
+
+                if (client == null || !client.Connected)
+                {
+                    await Task.Delay(100, token);
+                    continue;
+                }
+
+
+                try
+                {
+                    using var stream = client.GetStream();
+                    using var writer = new StreamWriter(stream, new UTF8Encoding(false))
+                    {
+                        AutoFlush = true
+                    };
+
+                    await foreach (var packet in _channel.Reader.ReadAllAsync(token))
+                    {
+                        await writer.WriteAsync(packet.Payload);
+                    }
+                }
+                catch
+                {
+                    lock (_clientLock)
+                    {
+                        _client?.Close();
+                        _client = null;
+                    }
+                }
+            }
+        }
+
+        private async Task UpdateConnectionState(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                bool connected = false;
+
+                lock (_clientLock)
+                {
+                    if (_client != null)
+                    {
+                        connected = IsSocketConnected(_client.Client);
+                    }
+                }
+
+                if (IsConnected.Value != connected)
+                {
+                    IsConnected.Value = connected;
+                }
+
+                InfoChanged?.Invoke();
+                await Task.Delay(1000, token);
+            }
+        }
+        private bool IsSocketConnected(Socket socket)
+        {
+            if (socket == null) return false;
+
+            try
+            {
+                if (socket.Poll(1000, SelectMode.SelectRead) && socket.Available == 0)
+                    return false;
+                else
+                    return socket.Connected;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
