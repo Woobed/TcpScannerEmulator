@@ -9,26 +9,22 @@ namespace ScannerEmulator2._0.Services
         private List<TaskViewModel> vms { get; set; } = new();
         public Action? ListInfoChanged { get; set; }
 
-        public CameraSendTask? GetTask(Guid id)
+        private CameraSendTask? GetTask(Guid id)
         {
             var instance = Tasks.Where(t => t.Id.Value == id).FirstOrDefault();
             if (instance == null) return null;
             return instance;
         }
 
-        //public List<TaskViewModel> GetTaskList(Func<TaskViewModel, bool>? predicate = null)
-        //{
-        //    return predicate == null ? Tasks : Tasks.Where(Task => predicate(Task)).ToList();
-        //}
         public List<TaskViewModel> GetTaskList()
         {
             return vms;
         }
 
-        public void CreateTask(string path, string ip, int port)
+        public void CreateTask(string path, string name)
         {
             var task = new CameraSendTask(path);
-            var vm = new TaskViewModel(ip, port);
+            var vm = new TaskViewModel(name);
 
             Mapper.Map(task, vm);
             
@@ -37,6 +33,10 @@ namespace ScannerEmulator2._0.Services
             
             ListInfoChanged?.Invoke();
         }
+        public void Pause(Guid id) => GetTask(id).Pause();
+        public void Start(Guid id) => GetTask(id).Start();
+        public void Resume(Guid id) => GetTask(id).Resume();
+        public void Stop(Guid id) => GetTask(id).Stop();
 
         public void RemoveTask(Guid id)
         {

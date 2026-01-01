@@ -1,133 +1,91 @@
-﻿//using Microsoft.Extensions.DependencyInjection;
-//using ScannerEmulator2._0.Services;
-//using ScannerEmulator2._0.TCPScanner;
-//using System.Windows;
-//using System.Windows.Controls;
+﻿using Microsoft.Extensions.DependencyInjection;
+using ScannerEmulator2._0.Services;
+using ScannerEmulator2._0.ViewModels;
+using System.Windows;
+using System.Windows.Controls;
 
-//namespace ScannerEmulator2._0.Windows
-//{
-//    public partial class TaskWorking : UserControl
-//    {
-//        private readonly CamerasHandlerService _service;
+namespace ScannerEmulator2._0.Windows
+{
+    public partial class TaskWorking : UserControl
+    {
+        private readonly TaskHandlerService _tasks;
 
-//        private readonly Dictionary<string, Action<int, int>> handlersDictionary = new();
+        public TaskWorking()
+        {
+            InitializeComponent();
 
-//        public TaskWorking()
-//        {
-//            InitializeComponent();
-//            _service = App.AppHost.Services.GetRequiredService<CamerasHandlerService>();
+            // Получаем сервис
+            _tasks = App.AppHost.Services.GetRequiredService<TaskHandlerService>();
 
-//            _service.ListInfoChanged += LoadActiveCameras;
-//        }
+            // Привязываем ItemsSource к VM
+            this.DataContext = new TaskWorkingViewModel(_tasks);
 
-//        private void LoadActiveCameras()
-//        {
-//            var cameras = _service.GetEmulatorList(t => t.IsReady);
-//            ActiveCamerasPanel.ItemsSource = cameras;
-//        }
+            // Подписка на обновление списка задач
+            _tasks.ListInfoChanged += () =>
+            {
+                if (this.DataContext is TaskWorkingViewModel vm)
+                {
+                    vm.Refresh();
+                }
+            };
+        }
 
+        private void Start_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            {
+                _tasks.Start(id);
+            }
+        }
 
-//        private void Start_Click(object sender, RoutedEventArgs e)
-//        {
-//            string name = (sender as Button)?.Tag as string;
-//            if (name == null) return;
+        private void Pause_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            {
+                _tasks.Pause(id);
+            }
+        }
 
-//            var cameraViewModel = ActiveCamerasPanel.ItemsSource?
-//                .OfType<EmulatorViewModel>()
-//                .FirstOrDefault(vm => vm.Name == name);
+        private void Resume_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            {
+                _tasks.Resume(id);
+            }
+        }
 
-//            if (cameraViewModel == null) return;
+        private void Stop_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            {
+                _tasks.Stop(id);
+            }
+        }
+    }
 
-//            var emulator = _service.GetEmulator(name);
-//            if (emulator is not TcpCameraEmulator cam) return;
+    /// <summary>
+    /// VM для страницы TaskWorking
+    /// </summary>
+    public class TaskWorkingViewModel
+    {
+        private readonly TaskHandlerService _service;
+        public List<TaskViewModel> TaskList { get; set; }
 
-//            if (handlersDictionary.TryGetValue(name, out var oldHandler))
-//            {
-//                cam.SendNotification -= oldHandler;
-//                handlersDictionary.Remove(name);
-//            }
+        public TaskWorkingViewModel(TaskHandlerService service)
+        {
+            _service = service;
+            TaskList = _service.GetTaskList();
+        }
 
-//            var settings = cameraViewModel.GetTaskSettings();
-
-//            Action<int, int> handler = (sent, total) =>
-//            {
-//                HandleSend(sent, total, cameraViewModel);
-//            };
-
-//            handlersDictionary[name] = handler;
-//            cam.SendNotification += handler;
-
-//            _ = cam.StartStreaming(settings);
-//        }
-
-
-//        private void HandleSend(int sent, int total, EmulatorViewModel vm)
-//        {
-//            Application.Current.Dispatcher.Invoke(() =>
-//            {
-//                vm.SendLines = sent.ToString();
-//                vm.FinalLines = total.ToString();
-
-//                if (total > 0)
-//                    vm.ProgressValue = (int)((double)sent / total * 100);
-//                else
-//                    vm.ProgressValue = 0;
-//            });
-//        }
-
-//        private void Pause_Click(object sender, RoutedEventArgs e)
-//        {
-//            string name = ((FrameworkElement)sender).Tag.ToString();
-//            if (_service.GetEmulator(name) is TcpCameraEmulator cam)
-//                cam.PauseStreaming();
-//        }
-
-//        private void Resume_Click(object sender, RoutedEventArgs e)
-//        {
-//            string name = ((FrameworkElement)sender).Tag.ToString();
-//            if (_service.GetEmulator(name) is TcpCameraEmulator cam)
-//                cam.ResumeStreaming();
-//        }
-
-//        private void Stop_Click(object sender, RoutedEventArgs e)
-//        {
-//            string name = ((FrameworkElement)sender).Tag.ToString();
-
-//            var emulator = _service.GetEmulator(name);
-//            if (emulator is not TcpCameraEmulator cam) return;
-
-//            // Безопасная отписка
-//            if (handlersDictionary.TryGetValue(name, out var handler))
-//            {
-//                cam.SendNotification -= handler;
-//                handlersDictionary.Remove(name);
-//            }
-
-//            cam.StopStreaming();
-
-//            // Обнуляем интерфейс
-//            var vm = ActiveCamerasPanel.ItemsSource?
-//                .OfType<EmulatorViewModel>()
-//                .FirstOrDefault(v => v.Name == name);
-
-//            if (vm != null)
-//            {
-//                vm.SendLines = "0";
-//                vm.FinalLines = "0";
-//                vm.ProgressValue = 0;
-//            }
-//        }
-
-//        private void DeleteTask_Click(object sender, RoutedEventArgs e)
-//        {
-//            Stop_Click(sender, e);
-
-//            string name = ((FrameworkElement)sender).Tag.ToString();
-//            if (_service.GetEmulator(name) is TcpCameraEmulator cam)
-//            {
-//                cam.DropTask();
-//                LoadActiveCameras();
-//            }
-//        }
-//    }
-//}
+        public void Refresh()
+        {
+            TaskList = _service.GetTaskList();
+            // Перепривязываем ItemsSource
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                // Через DataContext
+                // В XAML ItemsSource привязан к TaskList
+            });
+        }
+    }
+}

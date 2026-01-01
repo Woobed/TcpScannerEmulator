@@ -126,7 +126,7 @@ namespace ScannerEmulator2._0.Windows
             var cameraIpPort = (CamerasListBox.ItemsSource as List<EmulatorViewModel>)?.Where(e => e.Name.Value == name).Select(e => (e.Ip, e.Port)).FirstOrDefault();
             if (cameraIpPort != null)
             {
-                _tasks.CreateTask(_selectedFilePath, cameraIpPort.Value.Ip.Value, cameraIpPort.Value.Port.Value);
+                _tasks.CreateTask(_selectedFilePath, name);
             }
         }
 
