@@ -7,9 +7,6 @@ using System.Windows.Media;
 
 namespace ScannerEmulator2._0.Windows
 {
-    /// <summary>
-    /// Логика взаимодействия для TaskCreating.xaml
-    /// </summary>
     public partial class TaskCreating : UserControl
     {
         private readonly CamerasHandlerService _emulators;
@@ -27,8 +24,6 @@ namespace ScannerEmulator2._0.Windows
             LoadFiles();
             RefreshCamerasList();
         }
-
-        // === Загрузка файлов из папки Files ===
         private void LoadFiles()
         {
             string folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Files");
@@ -151,7 +146,6 @@ namespace ScannerEmulator2._0.Windows
             }
             try
             {
-                // Создаем директорию, если она не существует
                 string filesDirectory = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Files");
                 if (!Directory.Exists(filesDirectory))
                 {
@@ -160,20 +154,16 @@ namespace ScannerEmulator2._0.Windows
 
                 string filepath = System.IO.Path.Combine(filesDirectory, NewFileName.Text + ".txt");
 
-                // Проверяем, не существует ли уже файл
                 if (File.Exists(filepath))
                 {
                     MessageBox.Show("Файл с таким именем уже существует");
                     return;
                 }
 
-                // Создаем пустой файл и сразу закрываем поток
                 using (File.Create(filepath)) { }
 
-                // Записываем пустое содержимое в файл
                 File.WriteAllText(filepath, "");
 
-                // Загружаем содержимое (будет пустая строка)
                 FileContentTextBox.Text = File.ReadAllText(filepath);
                 _selectedFilePath = filepath;
                 SelectedFileLabel.Text = $"Выбран файл: {System.IO.Path.GetFileName(filepath)}";
@@ -187,8 +177,6 @@ namespace ScannerEmulator2._0.Windows
             }
         }
 
-
-        // === Удаление камеры ===
         private void DeleteCamera_Click(object sender, RoutedEventArgs e)
         {
             var button = (FrameworkElement)sender;
@@ -196,9 +184,6 @@ namespace ScannerEmulator2._0.Windows
             _emulators.RemoveEmulator(name);
             RefreshCamerasList();
         }
-
-
-
 
         private void FileContentTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {

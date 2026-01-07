@@ -1,49 +1,107 @@
 ﻿using ScannerEmulator2._0.Dto;
 using ScannerEmulator2._0.ViewModels;
+using System.Collections.ObjectModel;
 
 namespace ScannerEmulator2._0.Services
 {
     public class TaskHandlerService
     {
-        private List<CameraSendTask> Tasks { get; set; } = new();
-        private List<TaskViewModel> vms { get; set; } = new();
+        private readonly List<CameraSendTask> _tasks = new();
+        private readonly ObservableCollection<TaskViewModel> _vms = new();
+        private readonly CamerasHandlerService _camerasHandlerService;
+
         public Action? ListInfoChanged { get; set; }
+
+        public TaskHandlerService(CamerasHandlerService camerasHandler)
+        {
+            _camerasHandlerService = camerasHandler;
+        }
 
         private CameraSendTask? GetTask(Guid id)
         {
-            var instance = Tasks.Where(t => t.Id.Value == id).FirstOrDefault();
-            if (instance == null) return null;
-            return instance;
+            return _tasks.FirstOrDefault(t => t.Id.Value == id);
         }
 
-        public List<TaskViewModel> GetTaskList()
+        public ObservableCollection<TaskViewModel> GetTaskList()
         {
-            return vms;
+            return _vms;
         }
 
-        public void CreateTask(string path, string name)
+        public void CreateTask(string path, string cameraName)
         {
+            var camera = _camerasHandlerService.GetEmulator(cameraName);
+            if (camera == null)
+            {
+                throw new InvalidOperationException($"Camera '{cameraName}' not found");
+            }
+
             var task = new CameraSendTask(path);
-            var vm = new TaskViewModel(name);
+            task.AssignToEmulator(camera);
 
+            var settings = new TaskSettings
+            {
+                Delay = 1000,
+                GroupCount = 1,
+                DataHeader = "",
+                DataSeparator = "|",
+                DataTerminator = ""
+            };
+            task.SetSettings(settings);
+
+            var vm = new TaskViewModel();
+            vm.Name.Value = cameraName;
             Mapper.Map(task, vm);
-            
-            Tasks.Add(task);
-            vms.Add(vm);
-            
+
+            _tasks.Add(task);
+            _vms.Add(vm);
+
             ListInfoChanged?.Invoke();
         }
-        public void Pause(Guid id) => GetTask(id).Pause();
-        public void Start(Guid id) => GetTask(id).Start();
-        public void Resume(Guid id) => GetTask(id).Resume();
-        public void Stop(Guid id) => GetTask(id).Stop();
+
+        public void Start(Guid id)
+        {
+            var task = GetTask(id);
+            if (task != null)
+            {
+                task.StartExecution();
+            }
+        }
+
+        public void Pause(Guid id)
+        {
+            var task = GetTask(id);
+            task?.Pause();
+        }
+
+        public void Resume(Guid id)
+        {
+            var task = GetTask(id);
+            task?.Resume();
+        }
+
+        public void Stop(Guid id)
+        {
+            var task = GetTask(id);
+            if (task != null)
+            {
+                task.Stop();
+            }
+        }
 
         public void RemoveTask(Guid id)
         {
-            var result = Tasks.RemoveAll(i => i.Id.Value == id);
-            if (result != 0)
+            var task = GetTask(id);
+            if (task != null)
             {
-                vms.RemoveAll(i => i.Id.Value == id);
+                task.Stop();
+                _tasks.Remove(task);
+
+                var vm = _vms.FirstOrDefault(v => v.Id.Value == id);
+                if (vm != null)
+                {
+                    _vms.Remove(vm);
+                }
+
                 ListInfoChanged?.Invoke();
             }
         }

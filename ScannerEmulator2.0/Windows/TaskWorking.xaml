@@ -27,9 +27,26 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Text="{Binding Name}" FontWeight="Bold" FontSize="14"/>
+                                    <Grid Grid.Row="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="{Binding Name.Value}" FontWeight="Bold" FontSize="14"/>
+                                        <Button Grid.Column="1" Content="✕" 
+                                                Click="Remove_Click"
+                                                Tag="{Binding Id}"
+                                                Width="24" Height="24"
+                                                Padding="0"
+                                                FontSize="10"
+                                                Foreground="Red"
+                                                BorderThickness="0"
+                                                Background="Transparent"/>
+                                    </Grid>
 
                                     <StackPanel Grid.Row="1" Orientation="Vertical" Margin="0,4,0,4">
                                         <ProgressBar Value="{Binding Progress.Value}" Minimum="0" Maximum="100" Height="15" Background="#EEE">
@@ -43,11 +60,14 @@
                                         <TextBlock Text="{Binding Progress.Value, StringFormat=Прогресс: {0}%}" FontSize="11" Foreground="Gray"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                    <TextBlock Grid.Row="2" Text="{Binding State.Value}" 
+                                               Margin="0,4,0,4"
+                                               FontSize="12"
+                                               Foreground="Gray"/>
 
+                                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,4,0,0">
                                         <Button Content="▶ Старт"
-                                                
-                                                IsEnabled="{Binding State.Value}"
+                                                IsEnabled="{Binding CanStart.Value}"
                                                 Click="Start_Click"
                                                 Tag="{Binding Id}"
                                                 Padding="6,2"

@@ -1,6 +1,7 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Enums;
 using ScannerEmulator2._0.Reactive;
+using ScannerEmulator2._0.TCPScanner;
 using System.IO;
 using System.Threading.Channels;
 
@@ -12,11 +13,12 @@ namespace ScannerEmulator2._0.Dto
         public ReactiveProperty<TaskState> State { get; } = new(TaskState.Created);
         public ReactiveProperty<string> FilePath { get; } = new(string.Empty);
         public ReactiveProperty<int> Progress { get; } = new(0);
+        public TcpCameraEmulator? Emulator { get; private set; }
 
         private TaskSettings? _settings;
-
-        private readonly ManualResetEventSlim _pauseEvent = new(true);
         private CancellationTokenSource? _cts;
+        private volatile bool _isPaused = false;
+        private volatile bool _isRunning = false;
 
         public CameraSendTask(string filePath)
         {
@@ -28,6 +30,36 @@ namespace ScannerEmulator2._0.Dto
             _settings = settings;
         }
 
+        public void AssignToEmulator(TcpCameraEmulator emulator)
+        {
+            Emulator = emulator;
+        }
+
+        public void StartExecution()
+        {
+            if (Emulator == null)
+                throw new InvalidOperationException("Task is not assigned to any emulator");
+
+            if (_isRunning && State.Value == TaskState.Paused)
+            {
+                Resume();
+                return;
+            }
+
+            if (State.Value == TaskState.Created || State.Value == TaskState.Stopped)
+            {
+
+                _cts?.Cancel();
+                _cts?.Dispose();
+
+                State.Value = TaskState.Running;
+                _isPaused = false;
+                _isRunning = true;
+
+                Emulator.EnqueueTask(this);
+            }
+        }
+
         public async Task RunAsync(ChannelWriter<OutgoingPacket> writer, CancellationToken externalToken)
         {
             if (_settings == null)
@@ -37,6 +69,8 @@ namespace ScannerEmulator2._0.Dto
             var token = _cts.Token;
 
             State.Value = TaskState.Running;
+            _isPaused = false;
+            _isRunning = true;
 
             int totalLines = File.ReadLines(FilePath.Value).Count();
             int sentLines = 0;
@@ -45,7 +79,14 @@ namespace ScannerEmulator2._0.Dto
 
             while (!reader.EndOfStream && !token.IsCancellationRequested)
             {
-                _pauseEvent.Wait(token);
+                // Проверяем паузу
+                while (_isPaused && !token.IsCancellationRequested)
+                {
+                    await Task.Delay(100, token);
+                }
+
+                if (token.IsCancellationRequested)
+                    break;
 
                 string payload;
 
@@ -80,34 +121,53 @@ namespace ScannerEmulator2._0.Dto
                 sentLines += _settings.GroupCount;
                 Progress.Value = Math.Min(100, sentLines * 100 / totalLines);
 
-                await Task.Delay(_settings.Delay, token);
+                int delayRemaining = _settings.Delay;
+                while (delayRemaining > 0 && !token.IsCancellationRequested)
+                {
+                    if (_isPaused)
+                    {
+                        await Task.Delay(100, token);
+                        continue;
+                    }
+
+                    var stepDelay = Math.Min(100, delayRemaining);
+                    await Task.Delay(stepDelay, token);
+                    delayRemaining -= stepDelay;
+                }
             }
 
-            State.Value = TaskState.Stopped;
+            if (!_isPaused)
+            {
+                State.Value = token.IsCancellationRequested ? TaskState.Stopped : TaskState.Stopped;
+                _isRunning = false;
+            }
         }
 
         public void Start()
         {
             if (State.Value == TaskState.Created || State.Value == TaskState.Stopped)
             {
-                State.Value = TaskState.Paused;
-                _pauseEvent.Reset();
+                State.Value = TaskState.Running;
+                _isPaused = false;
+                _isRunning = true;
             }
         }
+
         public void Pause()
         {
-            if (State.Value == TaskState.Running)
+            if (State.Value == TaskState.Running && _isRunning)
             {
                 State.Value = TaskState.Paused;
-                _pauseEvent.Reset();
+                _isPaused = true;
             }
         }
+
         public void Resume()
         {
-            if (State.Value == TaskState.Paused)
+            if (State.Value == TaskState.Paused && _isRunning)
             {
                 State.Value = TaskState.Running;
-                _pauseEvent.Set();
+                _isPaused = false;
             }
         }
 
@@ -115,6 +175,8 @@ namespace ScannerEmulator2._0.Dto
         {
             _cts?.Cancel();
             State.Value = TaskState.Stopped;
+            _isPaused = false;
+            _isRunning = false;
         }
     }
 }

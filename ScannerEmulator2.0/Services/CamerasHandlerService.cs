@@ -1,5 +1,4 @@
-﻿using ScannerEmulator2._0.Abstractions;
-using ScannerEmulator2._0.Factories;
+﻿using ScannerEmulator2._0.Factories;
 using ScannerEmulator2._0.Reactive;
 using ScannerEmulator2._0.TCPScanner;
 
@@ -18,18 +17,13 @@ namespace ScannerEmulator2._0.Services
             _factory = factory;
         }
 
-        public TcpCameraEmulator? GetEmulator(string ip, int port)
+        public TcpCameraEmulator? GetEmulator(string name)
         {
-            var instance = tcpCameras.Where(t => t.Ip.Value == ip && t.Port.Value == port).FirstOrDefault();
+            var instance = tcpCameras.Where(t => t.Name.Value == name).FirstOrDefault();
             if (instance == null) return null;
             return instance;
         }
 
-        //public List<EmulatorViewModel> GetEmulatorList(Func<ITcpCameraEmulator, bool>? predicate = null)
-        //{
-        //    var filteredList = predicate == null ? tcpCameras : tcpCameras.Where(camera => predicate(camera));
-        //    return vms;
-        //}
         public List<EmulatorViewModel> GetEmulatorList()
         {
             return vms;
@@ -48,7 +42,6 @@ namespace ScannerEmulator2._0.Services
                 {
                     if (e.PropertyName == nameof(ReactiveProperty<bool>.Value))
                     {
-                        // Преобразуем Delegate в Action<bool> и вызываем
                         if (updateMethod is Action<bool> action)
                         {
                             action(vm.IsConnected.Value);

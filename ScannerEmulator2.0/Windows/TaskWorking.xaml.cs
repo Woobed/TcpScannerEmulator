@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using ScannerEmulator2._0.Reactive;
 using ScannerEmulator2._0.Services;
-using ScannerEmulator2._0.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -14,78 +14,73 @@ namespace ScannerEmulator2._0.Windows
         {
             InitializeComponent();
 
-            // Получаем сервис
             _tasks = App.AppHost.Services.GetRequiredService<TaskHandlerService>();
 
-            // Привязываем ItemsSource к VM
-            this.DataContext = new TaskWorkingViewModel(_tasks);
+            this.DataContext = _tasks;
 
-            // Подписка на обновление списка задач
-            _tasks.ListInfoChanged += () =>
+            _tasks.ListInfoChanged += OnTasksListChanged;
+
+            UpdateTasksList();
+        }
+
+        private void OnTasksListChanged()
+        {
+            UpdateTasksList();
+        }
+
+        private void UpdateTasksList()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                if (this.DataContext is TaskWorkingViewModel vm)
+                if (TasksPanel != null)
                 {
-                    vm.Refresh();
+                    TasksPanel.ItemsSource = null;
+                    TasksPanel.ItemsSource = _tasks.GetTaskList();
                 }
-            };
+            });
         }
 
         private void Start_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            if (sender is FrameworkElement fe && fe.Tag is ReactiveProperty<Guid> id)
             {
-                _tasks.Start(id);
+                _tasks.Start(id.Value);
             }
         }
 
         private void Pause_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            if (sender is FrameworkElement fe && fe.Tag is ReactiveProperty<Guid> id)
             {
-                _tasks.Pause(id);
+                _tasks.Pause(id.Value);
             }
         }
 
         private void Resume_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            if (sender is FrameworkElement fe && fe.Tag is ReactiveProperty<Guid> id)
             {
-                _tasks.Resume(id);
+                _tasks.Resume(id.Value);
             }
         }
 
         private void Stop_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is FrameworkElement fe && fe.Tag is Guid id)
+            if (sender is FrameworkElement fe && fe.Tag is ReactiveProperty<Guid> id)
             {
-                _tasks.Stop(id);
+                _tasks.Stop(id.Value);
             }
         }
-    }
-
-    /// <summary>
-    /// VM для страницы TaskWorking
-    /// </summary>
-    public class TaskWorkingViewModel
-    {
-        private readonly TaskHandlerService _service;
-        public List<TaskViewModel> TaskList { get; set; }
-
-        public TaskWorkingViewModel(TaskHandlerService service)
+        private void Remove_Click(object sender, RoutedEventArgs e)
         {
-            _service = service;
-            TaskList = _service.GetTaskList();
-        }
-
-        public void Refresh()
-        {
-            TaskList = _service.GetTaskList();
-            // Перепривязываем ItemsSource
-            Application.Current.Dispatcher.Invoke(() =>
+            if (sender is FrameworkElement fe && fe.Tag is ReactiveProperty<Guid> id)
             {
-                // Через DataContext
-                // В XAML ItemsSource привязан к TaskList
-            });
+                _tasks.RemoveTask(id.Value);
+            }
+        }
+        private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _tasks.ListInfoChanged -= OnTasksListChanged;
         }
     }
 }
