@@ -5,97 +5,523 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:ScannerEmulator2._0.ViewModels"
              mc:Ignorable="d">
-    <Border Background="White" Padding="10">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
 
-            <TextBlock Text="📋 Активные задачи"
-                       FontSize="24"
-                       FontWeight="Bold"
-                       Margin="0,0,0,12"/>
+    <Viewbox Stretch="Uniform" StretchDirection="Both">
+        <Border Width="980" Height="630" Background="White" Padding="10">
+            <Grid x:Name="MainGrid">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="200"/>
+                    <!-- Область для логов -->
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="TasksPanel" ItemsSource="{Binding TaskList}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:TaskViewModel}">
-                            <Border BorderThickness="1" CornerRadius="6" Margin="4" Padding="8" BorderBrush="#DDD" Background="#FAFAFA">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+                <!-- === Заголовок === -->
+                <TextBlock Grid.Row="0" Text="🎥 Управление активными задачами"
+                           FontSize="26" FontWeight="Bold"
+                           Margin="10,0,0,20"/>
 
-                                    <Grid Grid.Row="0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                <!-- === Список задач === -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                    <ItemsControl x:Name="TasksPanel">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:TaskViewModel}">
+                                <Border BorderBrush="#DDD" BorderThickness="1" Background="WhiteSmoke"
+                                        CornerRadius="8" Padding="12" Margin="6">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
-                                        <TextBlock Grid.Column="0" Text="{Binding Name.Value}" FontWeight="Bold" FontSize="14"/>
-                                        <Button Grid.Column="1" Content="✕" 
-                                                Click="Remove_Click"
-                                                Tag="{Binding Id}"
-                                                Width="24" Height="24"
-                                                Padding="0"
+                                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" Orientation="Vertical">
+                                                <TextBlock Text="{Binding Name.Value}" FontWeight="Bold" FontSize="14"/>
+                                                <TextBlock Text="{Binding FileName.Value}" 
+                                                           FontSize="12"
+                                                           Foreground="Gray"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="0,4,0,0"/>
+                                            </StackPanel>
+
+                                            <!-- Кнопка удаления -->
+                                            <Button Grid.Column="1" 
+                                                    Content="✕"
+                                                    Tag="{Binding Id}"
+                                                    Click="Remove_Click"
+                                                    Width="25"
+                                                    Height="25"
+                                                    Padding="0"
+                                                    FontSize="12"
+                                                    FontWeight="Bold"
+                                                    Background="#ff4444"
+                                                    Foreground="White"
+                                                    BorderThickness="0"
+                                                    ToolTip="Удалить задачу">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#ff4444"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#ff6666"/>
+                                                                <Setter Property="Cursor" Value="Hand"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Background" Value="#cc0000"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- Поля настроек с заголовками -->
+                                        <Border Grid.Row="2" 
+                                                Background="#f8f9fa" 
+                                                BorderBrush="#e9ecef" 
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="10"
+                                                Margin="0,0,0,10">
+                                            <StackPanel Orientation="Vertical">
+                                                <TextBlock Text="Настройки отправки" 
+                                                           FontWeight="SemiBold" 
+                                                           FontSize="12"
+                                                           Foreground="#495057"
+                                                           Margin="0,0,0,8"/>
+
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Header -->
+                                                    <StackPanel Grid.Column="0" Orientation="Vertical" Margin="0,0,8,0">
+                                                        <TextBlock Text="Header" 
+                                                                   FontSize="11" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#6c757d"
+                                                                   HorizontalAlignment="Center"
+                                                                   Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding Settings.DataHeader}" 
+                                                                 Height="25" 
+                                                                 FontSize="12"
+                                                                 Padding="4,2"
+                                                                 Background="White"
+                                                                 BorderBrush="#ced4da"
+                                                                 BorderThickness="1"
+                                                                 ToolTip="Заголовок данных"/>
+                                                    </StackPanel>
+
+                                                    <!-- Terminator -->
+                                                    <StackPanel Grid.Column="1" Orientation="Vertical" Margin="4,0,4,0">
+                                                        <TextBlock Text="Terminator" 
+                                                                   FontSize="11" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#6c757d"
+                                                                   HorizontalAlignment="Center"
+                                                                   Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding Settings.DataTerminator}" 
+                                                                 Height="25" 
+                                                                 FontSize="12"
+                                                                 Padding="4,2"
+                                                                 Background="White"
+                                                                 BorderBrush="#ced4da"
+                                                                 BorderThickness="1"
+                                                                 ToolTip="Терминатор данных"/>
+                                                    </StackPanel>
+
+                                                    <!-- Separator -->
+                                                    <StackPanel Grid.Column="2" Orientation="Vertical" Margin="4,0,4,0">
+                                                        <TextBlock Text="Separator" 
+                                                                   FontSize="11" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#6c757d"
+                                                                   HorizontalAlignment="Center"
+                                                                   Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding Settings.DataSeparator}" 
+                                                                 Height="25" 
+                                                                 FontSize="12"
+                                                                 Padding="4,2"
+                                                                 Background="White"
+                                                                 BorderBrush="#ced4da"
+                                                                 BorderThickness="1"
+                                                                 ToolTip="Разделитель данных"/>
+                                                    </StackPanel>
+
+                                                    <!-- Delay -->
+                                                    <StackPanel Grid.Column="3" Orientation="Vertical" Margin="4,0,4,0">
+                                                        <TextBlock Text="Delay (ms)" 
+                                                                   FontSize="11" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#6c757d"
+                                                                   HorizontalAlignment="Center"
+                                                                   Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding Settings.Delay}" 
+                                                                 Height="25" 
+                                                                 FontSize="12"
+                                                                 Padding="4,2"
+                                                                 Background="White"
+                                                                 BorderBrush="#ced4da"
+                                                                 BorderThickness="1"
+                                                                 ToolTip="Задержка в миллисекундах"/>
+                                                    </StackPanel>
+
+                                                    <!-- GroupCount -->
+                                                    <StackPanel Grid.Column="4" Orientation="Vertical" Margin="8,0,0,0">
+                                                        <TextBlock Text="Group Count" 
+                                                                   FontSize="11" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#6c757d"
+                                                                   HorizontalAlignment="Center"
+                                                                   Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding Settings.GroupCount}" 
+                                                                 Height="25" 
+                                                                 FontSize="12"
+                                                                 Padding="4,2"
+                                                                 Background="White"
+                                                                 BorderBrush="#ced4da"
+                                                                 BorderThickness="1"
+                                                                 ToolTip="Количество в группе"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Прогресс отправки -->
+                                        <StackPanel Grid.Row="3" Orientation="Vertical" Margin="0,0,0,10">
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Column="0" 
+                                                    Text="Прогресс отправки:" 
+                                                    FontSize="11" 
+                                                    Foreground="Gray"/>
+
+                                                <TextBlock Grid.Column="1" 
+                                                    Text="{Binding ProgressText.Value}" 
+                                                    FontSize="11" 
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#4CAF50"/>
+                                            </Grid>
+
+                                            <ProgressBar Value="{Binding Progress.Value}" 
+                                                 Minimum="0" 
+                                                 Maximum="100" 
+                                                 Height="15"
+                                                 Background="#E0E0E0"
+                                                 BorderThickness="1"
+                                                 BorderBrush="#CCCCCC">
+                                                <ProgressBar.Foreground>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                        <GradientStop Color="#4CAF50" Offset="0"/>
+                                                        <GradientStop Color="#8BC34A" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </ProgressBar.Foreground>
+                                            </ProgressBar>
+
+                                            <!-- Дополнительная информация под прогресс-баром -->
+                                            <TextBlock Text="{Binding Progress.Value, StringFormat={}{0}%}"
                                                 FontSize="10"
-                                                Foreground="Red"
-                                                BorderThickness="0"
-                                                Background="Transparent"/>
+                                                Foreground="Gray"
+                                                HorizontalAlignment="Center"
+                                                Margin="0,4,0,0"/>
+                                        </StackPanel>
+
+                                        <!-- Кнопки управления -->
+                                        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                                            <!-- Кнопка Старт -->
+                                            <Button Content="▶ Старт"
+                                                    IsEnabled="{Binding CanStart.Value}"
+                                                    Tag="{Binding Id}"
+                                                    Click="Start_Click"
+                                                    Margin="4"
+                                                    Padding="12,6"
+                                                    FontSize="13"
+                                                    BorderThickness="0"
+                                                    ToolTip="Начать выполнение задачи">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#28a745"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#218838"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                <Setter Property="Background" Value="#6c757d"/>
+                                                                <Setter Property="Foreground" Value="#adb5bd"/>
+                                                                <Setter Property="Cursor" Value="Arrow"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+
+                                            <!-- Кнопка Пауза -->
+                                            <Button Content="⏸ Пауза"
+                                                    IsEnabled="{Binding CanPause.Value}"
+                                                    Tag="{Binding Id}"
+                                                    Click="Pause_Click"
+                                                    Margin="4"
+                                                    Padding="12,6"
+                                                    FontSize="13"
+                                                    BorderThickness="0"
+                                                    ToolTip="Приостановить выполнение">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#ffc107"/>
+                                                        <Setter Property="Foreground" Value="#212529"/>
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#e0a800"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                <Setter Property="Background" Value="#6c757d"/>
+                                                                <Setter Property="Foreground" Value="#adb5bd"/>
+                                                                <Setter Property="Cursor" Value="Arrow"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+
+                                            <!-- Кнопка Продолжить -->
+                                            <Button Content="⏵ Продолжить"
+                                                    IsEnabled="{Binding CanResume.Value}"
+                                                    Tag="{Binding Id}"
+                                                    Click="Resume_Click"
+                                                    Margin="4"
+                                                    Padding="12,6"
+                                                    FontSize="13"
+                                                    BorderThickness="0"
+                                                    ToolTip="Продолжить выполнение">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#17a2b8"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#138496"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                <Setter Property="Background" Value="#6c757d"/>
+                                                                <Setter Property="Foreground" Value="#adb5bd"/>
+                                                                <Setter Property="Cursor" Value="Arrow"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+
+                                            <!-- Кнопка Стоп -->
+                                            <Button Content="⏹ Стоп"
+                                                    IsEnabled="{Binding CanStop.Value}"
+                                                    Tag="{Binding Id}"
+                                                    Click="Stop_Click"
+                                                    Margin="4"
+                                                    Padding="12,6"
+                                                    FontSize="13"
+                                                    BorderThickness="0"
+                                                    ToolTip="Остановить выполнение">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#dc3545"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#c82333"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                <Setter Property="Background" Value="#6c757d"/>
+                                                                <Setter Property="Foreground" Value="#adb5bd"/>
+                                                                <Setter Property="Cursor" Value="Arrow"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </StackPanel>
                                     </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
 
-                                    <StackPanel Grid.Row="1" Orientation="Vertical" Margin="0,4,0,4">
-                                        <ProgressBar Value="{Binding Progress.Value}" Minimum="0" Maximum="100" Height="15" Background="#EEE">
-                                            <ProgressBar.Foreground>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                    <GradientStop Color="#4CAF50" Offset="0"/>
-                                                    <GradientStop Color="#8BC34A" Offset="1"/>
-                                                </LinearGradientBrush>
-                                            </ProgressBar.Foreground>
-                                        </ProgressBar>
-                                        <TextBlock Text="{Binding Progress.Value, StringFormat=Прогресс: {0}%}" FontSize="11" Foreground="Gray"/>
-                                    </StackPanel>
+                <!-- === Область логов === -->
+                <Border Grid.Row="2" 
+                        BorderBrush="#DDD" 
+                        BorderThickness="1" 
+                        Background="#f8f9fa"
+                        CornerRadius="6"
+                        Margin="0,0,0,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="2" Text="{Binding State.Value}" 
-                                               Margin="0,4,0,4"
-                                               FontSize="12"
-                                               Foreground="Gray"/>
+                        <!-- Заголовок логов -->
+                        <Border Grid.Row="0" 
+                                Background="#e9ecef" 
+                                Padding="8,6"
+                                CornerRadius="6,6,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,4,0,0">
-                                        <Button Content="▶ Старт"
-                                                IsEnabled="{Binding CanStart.Value}"
-                                                Click="Start_Click"
-                                                Tag="{Binding Id}"
-                                                Padding="6,2"
-                                                Margin="0,0,4,0"/>
-                                        <Button Content="⏸ Пауза"
-                                                IsEnabled="{Binding CanPause.Value}"
-                                                Click="Pause_Click"
-                                                Tag="{Binding Id}"
-                                                Padding="6,2"
-                                                Margin="0,0,4,0"/>
-                                        <Button Content="⏵ Продолжить"
-                                                IsEnabled="{Binding CanResume.Value}"
-                                                Click="Resume_Click"
-                                                Tag="{Binding Id}"
-                                                Padding="6,2"
-                                                Margin="0,0,4,0"/>
-                                        <Button Content="⏹ Стоп"
-                                                IsEnabled="{Binding CanStop.Value}"
-                                                Click="Stop_Click"
-                                                Tag="{Binding Id}"
-                                                Padding="6,2"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Grid>
-    </Border>
+                                <TextBlock Grid.Column="0" 
+                                           Text="📝 Логи операций"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"/>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="ClearLogsBtn" 
+                                            Content="🗑️ Очистить"
+                                            Click="ClearLogs_Click"
+                                            Margin="4,0,0,0"
+                                            Padding="8,2"
+                                            FontSize="11"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            ToolTip="Очистить логи">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="Foreground" Value="#6c757d"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#dee2e6"/>
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Список логов -->
+                        <ListBox x:Name="LogsListBox"
+                            Grid.Row="1"
+                            VirtualizingStackPanel.IsVirtualizing="True"
+                            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto"
+                            Background="Transparent"
+                            BorderThickness="0">
+
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                               FontFamily="Consolas"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Padding="4,2"
+                                               Background="Transparent">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Text}" 
+                                                                 Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#e9ecef"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Очистить все логи"
+                                              Click="ClearLogs_Click"/>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <!-- === Статусная строка === -->
+                <Border Grid.Row="3" 
+                        Background="#f8f9fa" 
+                        BorderBrush="#e9ecef" 
+                        BorderThickness="1,1,0,0"
+                        Padding="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" 
+                                   Text="📋"
+                                   FontSize="14"
+                                   Margin="0,0,10,0"/>
+
+                        <TextBlock Grid.Column="1" 
+                                   x:Name="StatusLabel"
+                                   Text="Активные задачи"
+                                   FontSize="12"
+                                   Foreground="#6c757d"
+                                   VerticalAlignment="Center"/>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <TextBlock Text="{Binding ElementName=TasksPanel, Path=Items.Count, StringFormat={}Задач: {0}}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="#495057"/>
+
+                            <TextBlock Text=" • "
+                                       FontSize="12"
+                                       Foreground="#6c757d"
+                                       Margin="10,0,10,0"/>
+
+                            <TextBlock Text="{Binding ElementName=LogsListBox, Path=Items.Count, StringFormat={}Логов: {0}}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="#495057"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Viewbox>
 </UserControl>

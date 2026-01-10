@@ -1,6 +1,7 @@
 ﻿using ScannerEmulator2._0.Abstractions;
 using ScannerEmulator2._0.Dto;
 using ScannerEmulator2._0.Reactive;
+using ScannerEmulator2._0.Services;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -25,15 +26,17 @@ namespace ScannerEmulator2._0.TCPScanner
         private readonly object _clientLock = new();
 
         private CancellationTokenSource? _cts;
+        private LoggerService _logger;
 
         private readonly Channel<OutgoingPacket> _channel =
             Channel.CreateUnbounded<OutgoingPacket>();
 
-        public TcpCameraEmulator(string ip, int port)
+        public TcpCameraEmulator(string ip, int port, LoggerService logger)
         {
             Ip.Value = ip;
             Port.Value = port;
             Name.Value = $"{ip}:{port}";
+            _logger = logger;
         }
 
         public async Task StartAsync()
@@ -126,6 +129,9 @@ namespace ScannerEmulator2._0.TCPScanner
                     await foreach (var packet in _channel.Reader.ReadAllAsync(token))
                     {
                         await writer.WriteAsync(packet.Payload);
+                        var log = packet.log;
+                        log.CameraName = Name.Value ?? string.Empty;
+                        _logger.Log(log);
                     }
                 }
                 catch

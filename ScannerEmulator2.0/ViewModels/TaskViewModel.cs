@@ -1,4 +1,5 @@
 ﻿using ScannerEmulator2._0.Abstractions;
+using ScannerEmulator2._0.Dto;
 using ScannerEmulator2._0.Enums;
 using ScannerEmulator2._0.Reactive;
 using System.ComponentModel;
@@ -11,11 +12,16 @@ namespace ScannerEmulator2._0.ViewModels
         public ReactiveProperty<TaskState> State { get; } = new(TaskState.Created);
         public ReactiveProperty<int> Progress { get; } = new(0);
         public ReactiveProperty<string> Name { get; } = new(string.Empty);
-
+        public ReactiveProperty<string> FilePath { get; } = new(string.Empty);
+        public ReactiveProperty<string> FileName { get; } = new(string.Empty);
         public ReactiveProperty<bool> CanStart { get; } = new(false);
         public ReactiveProperty<bool> CanPause { get; } = new(false);
         public ReactiveProperty<bool> CanResume { get; } = new(false);
         public ReactiveProperty<bool> CanStop { get; } = new(false);
+
+        public ReactiveProperty<string> ProgressText { get; } = new("0/0");
+
+        public TaskSettings Settings { get; set; } = new();
 
         public TaskViewModel()
         {

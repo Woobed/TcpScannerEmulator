@@ -2,32 +2,23 @@
 using Microsoft.Extensions.Hosting;
 using ScannerEmulator2._0.Factories;
 using ScannerEmulator2._0.Services;
-using System.Configuration;
-using System.Data;
 using System.Windows;
 
 namespace ScannerEmulator2._0
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
         public static IHost? AppHost { get; private set; }
-
         public App()
         {
             AppHost = Host.CreateDefaultBuilder()
                 .ConfigureServices((context, services) =>
                 {
-                    
+                    services.AddSingleton<LoggerService>();
                     services.AddSingleton<MainWindow>();
-                    //services.AddSingleton<TaskCreating>();
                     services.AddSingleton<CamerasHandlerService>();
                     services.AddSingleton<EmulatorFactory>();
                     services.AddSingleton<TaskHandlerService>();
-
-                    
                 })
                 .Build();
         }

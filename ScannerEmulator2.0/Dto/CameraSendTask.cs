@@ -12,7 +12,14 @@ namespace ScannerEmulator2._0.Dto
         public ReactiveProperty<Guid> Id { get; } = new(Guid.NewGuid());
         public ReactiveProperty<TaskState> State { get; } = new(TaskState.Created);
         public ReactiveProperty<string> FilePath { get; } = new(string.Empty);
+        public ReactiveProperty<string> FileName { get; } = new(string.Empty);
         public ReactiveProperty<int> Progress { get; } = new(0);
+
+        // Новые свойства для отображения прогресса
+        public ReactiveProperty<int> SentGroups { get; } = new(0);
+        public ReactiveProperty<int> TotalGroups { get; } = new(0);
+        public ReactiveProperty<string> ProgressText { get; } = new("0/0");
+
         public TcpCameraEmulator? Emulator { get; private set; }
 
         private TaskSettings? _settings;
@@ -23,16 +30,53 @@ namespace ScannerEmulator2._0.Dto
         public CameraSendTask(string filePath)
         {
             FilePath.Value = filePath;
+            FileName.Value = Path.GetFileName(filePath);
         }
 
         public void SetSettings(TaskSettings settings)
         {
             _settings = settings;
+            // Пересчитываем количество групп при изменении настроек
+            CalculateTotalGroups();
         }
 
         public void AssignToEmulator(TcpCameraEmulator emulator)
         {
             Emulator = emulator;
+        }
+
+        private void CalculateTotalGroups()
+        {
+            if (_settings == null || string.IsNullOrEmpty(FilePath.Value))
+                return;
+
+            try
+            {
+                int totalLines = File.ReadLines(FilePath.Value).Count();
+                // Количество групп = ceil(общее количество строк / размер группы)
+                int totalGroups = (totalLines + _settings.GroupCount - 1) / _settings.GroupCount;
+                TotalGroups.Value = totalGroups;
+                UpdateProgressText();
+            }
+            catch
+            {
+                TotalGroups.Value = 0;
+                UpdateProgressText();
+            }
+        }
+
+        private void UpdateProgressText()
+        {
+            ProgressText.Value = $"{SentGroups.Value}/{TotalGroups.Value}";
+            // Также обновляем процентный прогресс
+            if (TotalGroups.Value > 0)
+            {
+                Progress.Value = Math.Min(100, SentGroups.Value * 100 / TotalGroups.Value);
+            }
+            else
+            {
+                Progress.Value = 0;
+            }
         }
 
         public void StartExecution()
@@ -48,13 +92,16 @@ namespace ScannerEmulator2._0.Dto
 
             if (State.Value == TaskState.Created || State.Value == TaskState.Stopped)
             {
-
                 _cts?.Cancel();
                 _cts?.Dispose();
 
                 State.Value = TaskState.Running;
                 _isPaused = false;
                 _isRunning = true;
+
+                // Сбрасываем счетчики при новом запуске
+                SentGroups.Value = 0;
+                CalculateTotalGroups();
 
                 Emulator.EnqueueTask(this);
             }
@@ -74,6 +121,8 @@ namespace ScannerEmulator2._0.Dto
 
             int totalLines = File.ReadLines(FilePath.Value).Count();
             int sentLines = 0;
+            SentGroups.Value = 0; // Сбрасываем при запуске
+            CalculateTotalGroups(); // Пересчитываем общее количество групп
 
             using var reader = new StreamReader(File.OpenRead(FilePath.Value));
 
@@ -97,6 +146,7 @@ namespace ScannerEmulator2._0.Dto
                         break;
 
                     payload = line + _settings.DataSeparator;
+                    SentGroups.Value++; // Одна строка = одна группа
                 }
                 else
                 {
@@ -114,12 +164,19 @@ namespace ScannerEmulator2._0.Dto
                               string.Join(_settings.DataSeparator, group) +
                               _settings.DataSeparator +
                               _settings.DataTerminator;
+
+                    SentGroups.Value++; // Одна группа строк
+                    sentLines += group.Count;
                 }
 
-                await writer.WriteAsync(new OutgoingPacket(payload), token);
+                var packet = new OutgoingPacket();
+                packet.Payload = payload;
+                packet.log = new(payload, FileName.Value ?? string.Empty);
 
-                sentLines += _settings.GroupCount;
-                Progress.Value = Math.Min(100, sentLines * 100 / totalLines);
+                await writer.WriteAsync(packet, token);
+
+                // Обновляем текст прогресса
+                UpdateProgressText();
 
                 int delayRemaining = _settings.Delay;
                 while (delayRemaining > 0 && !token.IsCancellationRequested)

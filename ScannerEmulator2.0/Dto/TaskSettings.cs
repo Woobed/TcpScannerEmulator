@@ -3,8 +3,8 @@
     public class TaskSettings
     {
         public string DataHeader { get; set; } = string.Empty;
-        public string DataTerminator { get; set; } = "|";
-        public string DataSeparator { get; set; } = string.Empty;
+        public string DataTerminator { get; set; } = string.Empty;
+        public string DataSeparator { get; set; } = "|";
         public int Delay { get; set; } = 1000;
         public int GroupCount { get; set; } = 1;
     }

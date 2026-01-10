@@ -1,6 +1,7 @@
 ﻿using ScannerEmulator2._0.Dto;
 using ScannerEmulator2._0.ViewModels;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 
 namespace ScannerEmulator2._0.Services
 {
@@ -26,7 +27,11 @@ namespace ScannerEmulator2._0.Services
         {
             return _vms;
         }
-
+        public void SetSettings(Guid id, TaskSettings settings)
+        {
+            var task = _tasks.FirstOrDefault(t => t.Id.Value == id);
+            task?.SetSettings(settings);
+        }
         public void CreateTask(string path, string cameraName)
         {
             var camera = _camerasHandlerService.GetEmulator(cameraName);
@@ -37,16 +42,6 @@ namespace ScannerEmulator2._0.Services
 
             var task = new CameraSendTask(path);
             task.AssignToEmulator(camera);
-
-            var settings = new TaskSettings
-            {
-                Delay = 1000,
-                GroupCount = 1,
-                DataHeader = "",
-                DataSeparator = "|",
-                DataTerminator = ""
-            };
-            task.SetSettings(settings);
 
             var vm = new TaskViewModel();
             vm.Name.Value = cameraName;

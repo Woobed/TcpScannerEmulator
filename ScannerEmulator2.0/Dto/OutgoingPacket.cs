@@ -1,12 +1,8 @@
 ﻿namespace ScannerEmulator2._0.Dto
 {
-    public readonly struct OutgoingPacket
+    public class OutgoingPacket
     {
-        public string Payload { get; }
-
-        public OutgoingPacket(string payload)
-        {
-            Payload = payload;
-        }
+        public string Payload { get; set; }
+        public Log log { get; set; }
     }
 }
