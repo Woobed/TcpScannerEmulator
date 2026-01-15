@@ -29,10 +29,8 @@ namespace ScannerEmulator2._0.Services
 
                     if (modelReactive != null && vmReactive != null)
                     {
-                        // Синхронизируем начальные значения
                         SyncInitialValue(modelReactive, vmReactive);
 
-                        // Создаем двустороннюю привязку
                         BindTwoWay(modelReactive, vmReactive);
                     }
                 }
@@ -50,16 +48,13 @@ namespace ScannerEmulator2._0.Services
 
         private static void BindTwoWay(object source, object target)
         {
-            // Создаем обработчики событий
             PropertyChangedEventHandler sourceHandler = null;
             PropertyChangedEventHandler targetHandler = null;
 
-            // Обработчик для изменений в source
             sourceHandler = (s, e) =>
             {
                 if (e.PropertyName == "Value")
                 {
-                    // Временно отписываемся от target, чтобы избежать цикла
                     var targetAsNotify = target as INotifyPropertyChanged;
                     if (targetAsNotify != null && targetHandler != null)
                     {
@@ -72,19 +67,16 @@ namespace ScannerEmulator2._0.Services
                         }
                         finally
                         {
-                            // Снова подписываемся
                             targetAsNotify.PropertyChanged += targetHandler;
                         }
                     }
                 }
             };
 
-            // Обработчик для изменений в target
             targetHandler = (s, e) =>
             {
                 if (e.PropertyName == "Value")
                 {
-                    // Временно отписываемся от source, чтобы избежать цикла
                     var sourceAsNotify = source as INotifyPropertyChanged;
                     if (sourceAsNotify != null && sourceHandler != null)
                     {
@@ -97,14 +89,12 @@ namespace ScannerEmulator2._0.Services
                         }
                         finally
                         {
-                            // Снова подписываемся
                             sourceAsNotify.PropertyChanged += sourceHandler;
                         }
                     }
                 }
             };
 
-            // Подписываемся на события
             var sourceAsNotify = source as INotifyPropertyChanged;
             var targetAsNotify = target as INotifyPropertyChanged;
 
@@ -133,7 +123,6 @@ namespace ScannerEmulator2._0.Services
 
             if (valueProp != null && value != null)
             {
-                // Конвертируем значение к нужному типу, если необходимо
                 var targetType = valueProp.PropertyType;
                 if (value.GetType() != targetType)
                 {

@@ -37,27 +37,6 @@ namespace ScannerEmulator2._0.Windows
             FilesListBox.ItemsSource = files;
         }
 
-        // При выборе файла 
-        private void SelectFile_Click(object sender, RoutedEventArgs e)
-        {
-            if (FilesListBox.SelectedItem == null)
-            {
-                MessageBox.Show("Выберите файл из списка.");
-                return;
-            }
-
-            string fileName = FilesListBox.SelectedItem.ToString()!;
-            string fullPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Files", fileName);
-
-            if (!File.Exists(fullPath))
-            {
-                MessageBox.Show("Файл не найден.");
-                return;
-            }
-
-            _selectedFilePath = fullPath;
-            FileContentTextBox.Text = File.ReadAllText(fullPath);
-        }
         private void FilesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (FilesListBox.SelectedItem == null) return;

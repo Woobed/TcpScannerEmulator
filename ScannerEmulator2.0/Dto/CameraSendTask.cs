@@ -14,8 +14,6 @@ namespace ScannerEmulator2._0.Dto
         public ReactiveProperty<string> FilePath { get; } = new(string.Empty);
         public ReactiveProperty<string> FileName { get; } = new(string.Empty);
         public ReactiveProperty<int> Progress { get; } = new(0);
-
-        // Новые свойства для отображения прогресса
         public ReactiveProperty<int> SentGroups { get; } = new(0);
         public ReactiveProperty<int> TotalGroups { get; } = new(0);
         public ReactiveProperty<string> ProgressText { get; } = new("0/0");
@@ -36,7 +34,6 @@ namespace ScannerEmulator2._0.Dto
         public void SetSettings(TaskSettings settings)
         {
             _settings = settings;
-            // Пересчитываем количество групп при изменении настроек
             CalculateTotalGroups();
         }
 
@@ -53,7 +50,6 @@ namespace ScannerEmulator2._0.Dto
             try
             {
                 int totalLines = File.ReadLines(FilePath.Value).Count();
-                // Количество групп = ceil(общее количество строк / размер группы)
                 int totalGroups = (totalLines + _settings.GroupCount - 1) / _settings.GroupCount;
                 TotalGroups.Value = totalGroups;
                 UpdateProgressText();
@@ -68,7 +64,6 @@ namespace ScannerEmulator2._0.Dto
         private void UpdateProgressText()
         {
             ProgressText.Value = $"{SentGroups.Value}/{TotalGroups.Value}";
-            // Также обновляем процентный прогресс
             if (TotalGroups.Value > 0)
             {
                 Progress.Value = Math.Min(100, SentGroups.Value * 100 / TotalGroups.Value);
@@ -99,7 +94,6 @@ namespace ScannerEmulator2._0.Dto
                 _isPaused = false;
                 _isRunning = true;
 
-                // Сбрасываем счетчики при новом запуске
                 SentGroups.Value = 0;
                 CalculateTotalGroups();
 
@@ -121,14 +115,13 @@ namespace ScannerEmulator2._0.Dto
 
             int totalLines = File.ReadLines(FilePath.Value).Count();
             int sentLines = 0;
-            SentGroups.Value = 0; // Сбрасываем при запуске
-            CalculateTotalGroups(); // Пересчитываем общее количество групп
+            SentGroups.Value = 0;
+            CalculateTotalGroups();
 
             using var reader = new StreamReader(File.OpenRead(FilePath.Value));
 
             while (!reader.EndOfStream && !token.IsCancellationRequested)
             {
-                // Проверяем паузу
                 while (_isPaused && !token.IsCancellationRequested)
                 {
                     await Task.Delay(100, token);
@@ -146,7 +139,7 @@ namespace ScannerEmulator2._0.Dto
                         break;
 
                     payload = line + _settings.DataSeparator;
-                    SentGroups.Value++; // Одна строка = одна группа
+                    SentGroups.Value++;
                 }
                 else
                 {
@@ -165,7 +158,7 @@ namespace ScannerEmulator2._0.Dto
                               _settings.DataSeparator +
                               _settings.DataTerminator;
 
-                    SentGroups.Value++; // Одна группа строк
+                    SentGroups.Value++;
                     sentLines += group.Count;
                 }
 
@@ -175,7 +168,6 @@ namespace ScannerEmulator2._0.Dto
 
                 await writer.WriteAsync(packet, token);
 
-                // Обновляем текст прогресса
                 UpdateProgressText();
 
                 int delayRemaining = _settings.Delay;
@@ -197,16 +189,6 @@ namespace ScannerEmulator2._0.Dto
             {
                 State.Value = token.IsCancellationRequested ? TaskState.Stopped : TaskState.Stopped;
                 _isRunning = false;
-            }
-        }
-
-        public void Start()
-        {
-            if (State.Value == TaskState.Created || State.Value == TaskState.Stopped)
-            {
-                State.Value = TaskState.Running;
-                _isPaused = false;
-                _isRunning = true;
             }
         }
 

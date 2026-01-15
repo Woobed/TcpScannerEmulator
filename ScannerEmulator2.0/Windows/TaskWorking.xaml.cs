@@ -48,7 +48,6 @@ namespace ScannerEmulator2._0.Windows
         {
             if (e.PropertyName == nameof(LoggerService.Logs))
             {
-                // Прокручиваем к последнему логу при добавлении новых
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     if (LogsListBox.Items.Count > 0)
