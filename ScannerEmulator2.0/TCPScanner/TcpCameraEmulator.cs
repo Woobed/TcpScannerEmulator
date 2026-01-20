@@ -29,7 +29,13 @@ namespace ScannerEmulator2._0.TCPScanner
         private LoggerService _logger;
 
         private readonly Channel<OutgoingPacket> _channel =
-            Channel.CreateUnbounded<OutgoingPacket>();
+            Channel.CreateBounded<OutgoingPacket>(
+                new BoundedChannelOptions(10000)
+            {
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = true,
+                SingleWriter = false
+            });
 
         public TcpCameraEmulator(string ip, int port, LoggerService logger)
         {
@@ -104,6 +110,7 @@ namespace ScannerEmulator2._0.TCPScanner
 
         private async Task WriterLoop(CancellationToken token)
         {
+            StreamWriter? writer = null;
             while (!token.IsCancellationRequested)
             {
                 TcpClient? client;
@@ -113,29 +120,29 @@ namespace ScannerEmulator2._0.TCPScanner
 
                 if (client == null || !client.Connected)
                 {
+                    writer?.Dispose();
+                    writer = null;
                     await Task.Delay(100, token);
                     continue;
                 }
-
+                writer ??= new StreamWriter(client.GetStream(), new UTF8Encoding(false))
+                {
+                    AutoFlush = true
+                };
 
                 try
                 {
-                    using var stream = client.GetStream();
-                    using var writer = new StreamWriter(stream, new UTF8Encoding(false))
-                    {
-                        AutoFlush = true
-                    };
-
-                    await foreach (var packet in _channel.Reader.ReadAllAsync(token))
-                    {
-                        await writer.WriteAsync(packet.Payload);
-                        var log = packet.log;
-                        log.CameraName = Name.Value ?? string.Empty;
-                        _logger.Log(log);
-                    }
+                    var packet = await _channel.Reader.ReadAsync(token);
+                    await writer.WriteAsync(packet.Payload);
+                    var log = packet.log;
+                    log.CameraName = Name.Value ?? string.Empty;
+                    _logger.Log(log);
                 }
                 catch
                 {
+                    writer?.Dispose();
+                    writer = null;
+
                     lock (_clientLock)
                     {
                         _client?.Close();
