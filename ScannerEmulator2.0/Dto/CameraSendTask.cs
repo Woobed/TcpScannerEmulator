@@ -61,7 +61,7 @@ namespace ScannerEmulator2._0.Dto
             }
         }
 
-        private void UpdateProgressText()
+        public void UpdateProgressText()
         {
             ProgressText.Value = $"{SentGroups.Value}/{TotalGroups.Value}";
             if (TotalGroups.Value > 0)
@@ -167,8 +167,6 @@ namespace ScannerEmulator2._0.Dto
                 packet.log = new(payload, FileName.Value ?? string.Empty);
 
                 await writer.WriteAsync(packet, token);
-
-                UpdateProgressText();
 
                 int delayRemaining = _settings.Delay;
                 while (delayRemaining > 0 && !token.IsCancellationRequested)

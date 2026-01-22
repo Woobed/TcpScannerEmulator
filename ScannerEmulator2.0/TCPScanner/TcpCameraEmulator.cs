@@ -18,6 +18,7 @@ namespace ScannerEmulator2._0.TCPScanner
         public ReactiveProperty<bool> IsConnected { get; set; } = new(false);
         public bool IsRunning { get; set; } = false;
         public bool IsReady { get; private set; } = true;
+        private Action MessageSentEvent;
 
         public Action? InfoChanged { get; set; }
 
@@ -81,6 +82,7 @@ namespace ScannerEmulator2._0.TCPScanner
 
         public Guid EnqueueTask(CameraSendTask task)
         {
+            MessageSentEvent += task.UpdateProgressText;
             _ = task.RunAsync(_channel.Writer, _cts!.Token);
 
             return task.Id.Value;
@@ -134,6 +136,7 @@ namespace ScannerEmulator2._0.TCPScanner
                 {
                     var packet = await _channel.Reader.ReadAsync(token);
                     await writer.WriteAsync(packet.Payload);
+                    MessageSentEvent?.Invoke();
                     var log = packet.log;
                     log.CameraName = Name.Value ?? string.Empty;
                     _logger.Log(log);
