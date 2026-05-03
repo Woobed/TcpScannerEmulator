@@ -18,7 +18,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- === Заголовок === -->
-                <TextBlock Grid.Row="0" Text="🎥 Управление активными задачами"
+                <TextBlock Grid.Row="0" Text="🎥 Управление активными заданиями"
                            FontSize="26" FontWeight="Bold"
                            Margin="10,0,0,20"/>
 

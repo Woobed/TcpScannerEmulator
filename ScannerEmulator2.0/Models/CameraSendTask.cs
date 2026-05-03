@@ -150,8 +150,8 @@ namespace ScannerEmulator2._0.Dto
                         if (line == null) break;
                         group.Add(line);
                     }
-
                     if (group.Count == 0) break;
+
 
                     payload = _settings.DataHeader +
                               string.Join(_settings.DataSeparator, group) +
@@ -177,7 +177,7 @@ namespace ScannerEmulator2._0.Dto
                         continue;
                     }
 
-                    var stepDelay = Math.Min(100, delayRemaining);
+                    var stepDelay = Math.Min(10, delayRemaining);
                     await Task.Delay(stepDelay, token);
                     delayRemaining -= stepDelay;
                 }
