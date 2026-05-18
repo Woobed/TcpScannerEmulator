@@ -139,7 +139,7 @@ namespace ScannerEmulator2._0.Dto
                         break;
 
                     payload = line + _settings.DataSeparator;
-                    SentGroups.Value++;
+                    //SentGroups.Value++;
                 }
                 else
                 {
@@ -158,13 +158,16 @@ namespace ScannerEmulator2._0.Dto
                               _settings.DataSeparator +
                               _settings.DataTerminator;
 
-                    SentGroups.Value++;
+                    //SentGroups.Value++;
                     sentLines += group.Count;
                 }
 
                 var packet = new OutgoingPacket();
                 packet.Payload = payload;
                 packet.log = new(payload, FileName.Value ?? string.Empty);
+                packet.Delay = _settings.Delay;
+                packet.CreatedAt = DateTime.UtcNow;
+                packet.Hash = this.GetHashCode();
 
                 await writer.WriteAsync(packet, token);
 
@@ -187,6 +190,15 @@ namespace ScannerEmulator2._0.Dto
             {
                 State.Value = token.IsCancellationRequested ? TaskState.Stopped : TaskState.Stopped;
                 _isRunning = false;
+            }
+        }
+
+        public void IncrementSentGroups(int hash)
+        {
+            if (this.GetHashCode() == hash)
+            {
+                SentGroups.Value++;
+                UpdateProgressText();
             }
         }
 
